@@ -1,0 +1,7 @@
+[package]
+name = "wavelet-matirix"
+version = "0.1.0"
+authors = ["SEKINE, Hideki <sekineh@me.com>"]
+
+[dependencies]
+succinct = "0.4.2"
