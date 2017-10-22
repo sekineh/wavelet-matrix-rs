@@ -3,6 +3,7 @@ extern crate succinct;
 use succinct::*;
 use succinct::rank::RankSupport;
 use succinct::select::SelectSupport;
+use succinct::SpaceUsage;
 
 // #[derive(Debug)]
 struct RsDic {
@@ -63,8 +64,11 @@ mod tests {
             rsb.push_bit(true);
         }
         let rs = rsb.build();
-        assert!(rs.total_bytes() > 1_000_000 / 8);
+
+        // space usage
+        assert!(rs.total_bytes() > 1_000_000 / 8); // > orig
         assert!(rs.total_bytes() < 1_000_000 / 8 * 13 / 10); // < orig * 1.3
+        assert_eq!(RsDic::stack_bytes(), 120);
 
         // .access()
         assert_eq!(rs.access(0), true);
