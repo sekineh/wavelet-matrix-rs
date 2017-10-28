@@ -2,10 +2,18 @@ use succinct::*;
 use succinct::rank::RankSupport;
 use succinct::select::SelectSupport;
 use succinct::SpaceUsage;
+use std::fmt;
+use std::fmt::Debug;
+use std::fmt::Formatter;
 
-// #[derive(Debug)]
 pub struct RsDic {
     select_support: BinSearchSelect<JacobsonRank<BitVector>>
+}
+
+impl Debug for RsDic {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "RsDic: {{ bit_len(): {} }}", self.select_support.inner().inner().bit_len())
+    }
 }
 
 impl RsDic {
@@ -17,20 +25,23 @@ impl RsDic {
         self.rank(self.limit(), false)
     }
 
-    fn one_num(&self) -> u64 {
+    pub fn one_num(&self) -> u64 {
         self.rank(self.limit(), true)
     }
 }
 
 impl RankSupport for RsDic {
     type Over = bool;
+
+    /// Return the length of 
     fn limit(&self) -> u64 {
         self.select_support.inner().limit()        
     }
 
-    /// This implementation of rank() return the occurence of value within the range [0, pos)
-    /// always return 0 for rank(0, val) 
-    /// It is different from the other succinct::rank::RankSupport implementation
+    /// Return the occurence of value within the range [0, pos)
+    /// 
+    /// Always return 0 for rank(0, value) for any value. 
+    /// Note: It is different from rank() definition used in succinct::rank::RankSupport 
     fn rank(&self, pos: u64, value: bool) ->u64 {
         // self.select_support.inner().rank(pos, value)
         if pos > 0 {
@@ -43,6 +54,7 @@ impl RankSupport for RsDic {
 
 impl SelectSupport for RsDic {
     type Over = bool;
+    /// Return the position of the index'th occurence of the value
     fn select(&self, index: u64, value: bool) ->Option<u64> {
         self.select_support.select(index, value)
     }
