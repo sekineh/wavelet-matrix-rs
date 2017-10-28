@@ -1,6 +1,6 @@
-use succinct::rank::RankSupport;
 use rsdic_simple::*;
 
+/// 
 #[derive(Debug)]
 pub struct WaveletMatrix {
     layers: Vec<RsDic>,
@@ -182,6 +182,8 @@ mod tests {
         wmb.push(31);
         wmb.push(11);
         wmb.push(10);
+        wmb.push(11);
+
         let wm = wmb.build();
         assert_eq!(wm.lookup(0), 1);
         assert_eq!(wm.lookup(1), 31);
@@ -197,5 +199,7 @@ mod tests {
         assert_eq!(wm.rank(2, 31), 1);
         assert_eq!(wm.rank(3, 31), 1);
         assert_eq!(wm.rank(4, 31), 1);
+
+        assert_eq!(wm.lookup_and_rank(4), (11, 1));
     }
 }

@@ -128,5 +128,8 @@ mod tests {
         assert_eq!(rs.select(0, false), None);
         assert_eq!(rs.select(999_999, false), None);
         assert_eq!(rs.select(1_000_000, false), None);
+
+        assert_eq!(rs.zero_num(), 0);
+        assert_eq!(rs.one_num(), 1_000_000);
     }
 }
