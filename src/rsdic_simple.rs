@@ -7,12 +7,16 @@ use std::fmt::Debug;
 use std::fmt::Formatter;
 
 pub struct RsDic {
-    select_support: BinSearchSelect<JacobsonRank<BitVector>>
+    select_support: BinSearchSelect<JacobsonRank<BitVector>>,
 }
 
 impl Debug for RsDic {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "RsDic: {{ bit_len(): {} }}", self.select_support.inner().inner().bit_len())
+        write!(
+            f,
+            "RsDic: {{ bit_len(): {} }}",
+            self.select_support.inner().inner().bit_len()
+        )
     }
 }
 
@@ -48,10 +52,10 @@ impl RsDic {
     }
 
     /// Return the position of the index'th occurrence of the value
-    pub fn select(&self, index: usize, value: bool) ->Option<usize> {
+    pub fn select(&self, index: usize, value: bool) -> Option<usize> {
         match self.select_support.select(index as u64, value) {
             Some(x) => Some(x as usize),
-            None => None
+            None => None,
         }
     }
 }
@@ -63,7 +67,7 @@ pub struct RsDicBuilder {
 impl RsDicBuilder {
     pub fn new() -> Self {
         RsDicBuilder {
-            bv: BitVector::new()
+            bv: BitVector::new(),
         }
     }
     pub fn push_bit(&mut self, bit: bool) {
@@ -79,8 +83,8 @@ impl RsDicBuilder {
 }
 
 impl SpaceUsage for RsDic {
-    fn is_stack_only() -> bool { 
-        false 
+    fn is_stack_only() -> bool {
+        false
     }
     fn heap_bytes(&self) -> usize {
         self.select_support.heap_bytes()
@@ -94,7 +98,7 @@ mod tests {
     #[test]
     fn rsdic_sanity() {
         let mut rsb = RsDicBuilder::new();
-        for _ in  0..1_000_000 {
+        for _ in 0..1_000_000 {
             rsb.push_bit(true);
         }
         let rs = rsb.build();

@@ -1,12 +1,12 @@
 use rsdic_simple::*;
 
-/// 
+///
 #[derive(Debug)]
 pub struct WaveletMatrix {
     layers: Vec<RsDic>,
-    dim: u64, // max value + 1
+    dim: u64,   // max value + 1
     num: usize, // = layers[0].len()
-    blen: u8, // = layers.len()
+    blen: u8,   // = layers.len()
 }
 
 impl WaveletMatrix {
@@ -23,8 +23,20 @@ impl WaveletMatrix {
             let mut next_zeros: Vec<u64> = Vec::new();
             let mut next_ones: Vec<u64> = Vec::new();
             let mut rsd_ = RsDicBuilder::new();
-            Self::filter(&zeros, blen - depth - 1, &mut next_zeros, &mut next_ones, &mut rsd_);
-            Self::filter(&ones, blen - depth - 1, &mut next_zeros, &mut next_ones, &mut rsd_);
+            Self::filter(
+                &zeros,
+                blen - depth - 1,
+                &mut next_zeros,
+                &mut next_ones,
+                &mut rsd_,
+            );
+            Self::filter(
+                &ones,
+                blen - depth - 1,
+                &mut next_zeros,
+                &mut next_ones,
+                &mut rsd_,
+            );
             zeros = next_zeros;
             ones = next_ones;
             layers.push(rsd_.build());
@@ -38,7 +50,13 @@ impl WaveletMatrix {
         }
     }
 
-    fn filter(vals: &Vec<u64>, depth: u8, next_zeros: &mut Vec<u64>, next_ones: &mut Vec<u64>, rsd: &mut RsDicBuilder) {
+    fn filter(
+        vals: &Vec<u64>,
+        depth: u8,
+        next_zeros: &mut Vec<u64>,
+        next_ones: &mut Vec<u64>,
+        rsd: &mut RsDicBuilder,
+    ) {
         for val in vals {
             let bit = ((val >> depth) & 1) == 1;
             rsd.push_bit(bit);
@@ -134,9 +152,7 @@ pub struct WaveletMatrixBuilder {
 
 impl WaveletMatrixBuilder {
     pub fn new() -> WaveletMatrixBuilder {
-        WaveletMatrixBuilder {
-            vals: Vec::new(),
-        }
+        WaveletMatrixBuilder { vals: Vec::new() }
     }
 
     pub fn push(&mut self, val: u64) {
