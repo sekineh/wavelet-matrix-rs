@@ -17,46 +17,42 @@ impl Debug for RsDic {
 }
 
 impl RsDic {
-    pub fn access(&self, pos: u64) -> bool {
-        self.select_support.inner().inner().get_bit(pos)
+    pub fn access(&self, pos: usize) -> bool {
+        self.select_support.inner().inner().get_bit(pos as u64)
     }
 
-    pub fn zero_num(&self) -> u64 {
+    pub fn zero_num(&self) -> usize {
         self.rank(self.limit(), false)
     }
 
-    pub fn one_num(&self) -> u64 {
+    pub fn one_num(&self) -> usize {
         self.rank(self.limit(), true)
     }
-}
 
-impl RankSupport for RsDic {
-    type Over = bool;
-
-    /// Return the length of 
-    fn limit(&self) -> u64 {
-        self.select_support.inner().limit()        
+    /// Return the length of
+    fn limit(&self) -> usize {
+        self.select_support.inner().limit() as usize
     }
 
-    /// Return the occurence of value within the range [0, pos)
-    /// 
-    /// Always return 0 for rank(0, value) for any value. 
-    /// Note: It is different from rank() definition used in succinct::rank::RankSupport 
-    fn rank(&self, pos: u64, value: bool) ->u64 {
+    /// Return the occurrences of value within the range [0, pos)
+    ///
+    /// Always return 0 for rank(0, value) for any value.
+    /// Note: It is different from rank() definition used in succinct::rank::RankSupport
+    pub fn rank(&self, pos: usize, value: bool) -> usize {
         // self.select_support.inner().rank(pos, value)
         if pos > 0 {
-            self.select_support.inner().rank(pos - 1, value)
+            self.select_support.inner().rank(pos as u64 - 1, value) as usize
         } else {
             0
         }
     }
-}
 
-impl SelectSupport for RsDic {
-    type Over = bool;
-    /// Return the position of the index'th occurence of the value
-    fn select(&self, index: u64, value: bool) ->Option<u64> {
-        self.select_support.select(index, value)
+    /// Return the position of the index'th occurrence of the value
+    pub fn select(&self, index: usize, value: bool) ->Option<usize> {
+        match self.select_support.select(index as u64, value) {
+            Some(x) => Some(x as usize),
+            None => None
+        }
     }
 }
 
