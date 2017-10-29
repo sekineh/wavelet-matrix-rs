@@ -26,15 +26,15 @@ impl RsDic {
     }
 
     pub fn zero_num(&self) -> usize {
-        self.rank(self.limit(), false)
+        self.rank(self.len(), false)
     }
 
     pub fn one_num(&self) -> usize {
-        self.rank(self.limit(), true)
+        self.rank(self.len(), true)
     }
 
-    /// Return the length of
-    fn limit(&self) -> usize {
+    /// Return the length of bits
+    pub fn len(&self) -> usize {
         self.select_support.inner().limit() as usize
     }
 
