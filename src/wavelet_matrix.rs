@@ -68,31 +68,13 @@ impl WaveletMatrix {
         }
     }
 
+    /// Returns the length of T
     #[inline]
     pub fn len(&self) -> usize {
         self.num
     }
 
-    fn lookup_and_rank(&self, pos: usize) -> (u64, usize) {
-        let mut val: u64 = 0;
-        let mut bpos: usize = 0;
-        let mut epos: usize = pos;
-
-        for depth in 0..self.bit_len as usize {
-            let rsd = &self.layers[depth];
-            let bit = rsd.access(epos);
-            bpos = rsd.rank(bpos, bit);
-            epos = rsd.rank(epos, bit);
-            val <<= 1;
-            if bit {
-                bpos += rsd.zero_num();
-                epos += rsd.zero_num();
-                val |= 1;
-            }
-        }
-        (val, epos - bpos)
-    }
-
+    /// Returns the value T[pos]
     pub fn lookup(&self, pos: usize) -> u64 {
         let mut val: u64 = 0;
         let mut pos: usize = pos;
@@ -110,10 +92,13 @@ impl WaveletMatrix {
         val
     }
 
-    /// return the number of c (== val) in T[0..pos]
+    /// Returns the number of val found in T[0..pos].
+    ///
+    /// The range specified is half open, i.e. [0, pos).
     pub fn rank(&self, pos: usize, val: u64) -> usize {
         let mut bpos = 0;
         let mut epos = pos;
+
         for depth in 0..self.bit_len {
             let rsd = &self.layers[depth as usize];
             let bit = get_bit_msb(val, depth, self.bit_len);
@@ -144,10 +129,12 @@ impl WaveletMatrix {
         let rsd = &self.layers[depth as usize];
         if !bit {
             pos = rsd.rank(pos, bit);
-            rank = self.select_helper(rank, val, pos, depth + 1).unwrap_or(self.len())
+            rank = self.select_helper(rank, val, pos, depth + 1)
+                .unwrap_or(self.len())
         } else {
             pos = rsd.zero_num() + rsd.rank(pos, bit);
-            rank = self.select_helper(rank, val, pos, depth + 1).unwrap_or(self.len()) - rsd.zero_num();
+            rank = self.select_helper(rank, val, pos, depth + 1)
+                .unwrap_or(self.len()) - rsd.zero_num();
         }
         rsd.select(rank, bit)
     }
@@ -245,7 +232,5 @@ mod tests {
         assert_eq!(wm.select(1, 11), Some(4));
         assert_eq!(wm.select(2, 11), None);
         assert_eq!(wm.select(3, 11), None);
-
-        assert_eq!(wm.lookup_and_rank(4), (11, 1));
     }
 }
