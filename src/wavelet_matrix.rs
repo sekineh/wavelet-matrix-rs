@@ -113,14 +113,15 @@ impl WaveletMatrix {
     }
 
     /// Return the position of (rank+1)-th val in T.
-    /// If no match has been found, it returns None.
-    pub fn select(&self, rank: usize, val: u64) -> Option<usize> {
+    /// 
+    /// If no match has been found, it returns the length of self.
+    pub fn select(&self, rank: usize, val: u64) -> usize {
         self.select_helper(rank, val, 0, 0)
     }
 
-    fn select_helper(&self, rank: usize, val: u64, pos: usize, depth: u8) -> Option<usize> {
+    fn select_helper(&self, rank: usize, val: u64, pos: usize, depth: u8) -> usize {
         if depth == self.bit_len {
-            return Some(pos + rank);
+            return pos + rank;
         }
         let mut pos = pos;
         let mut rank = rank;
@@ -129,12 +130,10 @@ impl WaveletMatrix {
         let rsd = &self.layers[depth as usize];
         if !bit {
             pos = rsd.rank(pos, bit);
-            rank = self.select_helper(rank, val, pos, depth + 1)
-                .unwrap_or(self.len())
+            rank = self.select_helper(rank, val, pos, depth + 1);
         } else {
             pos = rsd.zero_num() + rsd.rank(pos, bit);
-            rank = self.select_helper(rank, val, pos, depth + 1)
-                .unwrap_or(self.len()) - rsd.zero_num();
+            rank = self.select_helper(rank, val, pos, depth + 1) - rsd.zero_num();
         }
         rsd.select(rank, bit)
     }
@@ -226,11 +225,11 @@ mod tests {
         assert_eq!(wm.rank(3, 31), 1);
         assert_eq!(wm.rank(4, 31), 1);
 
-        assert_eq!(wm.select(0, 1), Some(0));
-        assert_eq!(wm.select(0, 31), Some(1));
-        assert_eq!(wm.select(0, 11), Some(2));
-        assert_eq!(wm.select(1, 11), Some(4));
-        assert_eq!(wm.select(2, 11), None);
-        assert_eq!(wm.select(3, 11), None);
+        assert_eq!(wm.select(0, 1), 0);
+        assert_eq!(wm.select(0, 31), 1);
+        assert_eq!(wm.select(0, 11), 2);
+        assert_eq!(wm.select(1, 11), 4);
+        assert_eq!(wm.select(2, 11), 5);
+        assert_eq!(wm.select(3, 11), 5);
     }
 }

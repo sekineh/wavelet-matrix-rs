@@ -52,10 +52,12 @@ impl RsDic {
     }
 
     /// Return the position of the index'th occurrence of the value
-    pub fn select(&self, index: usize, value: bool) -> Option<usize> {
+    /// 
+    /// If found nothing, it returns the length of the vector. 
+    pub fn select(&self, index: usize, value: bool) -> usize {
         match self.select_support.select(index as u64, value) {
-            Some(x) => Some(x as usize),
-            None => None,
+            Some(x) => x as usize,
+            None => self.len()
         }
     }
 }
@@ -119,9 +121,9 @@ mod tests {
         assert_eq!(rs.rank(1_000_000, true), 1_000_000); // Panics
 
         // .select(_, true)
-        assert_eq!(rs.select(0, true), Some(0));
-        assert_eq!(rs.select(999_999, true), Some(999_999));
-        assert_eq!(rs.select(1_000_000, true), None);
+        assert_eq!(rs.select(0, true), 0);
+        assert_eq!(rs.select(999_999, true), 999_999);
+        assert_eq!(rs.select(1_000_000, true), 1_000_000);
 
         // .rank(_, false)
         assert_eq!(rs.rank(0, false), 0);
@@ -129,9 +131,9 @@ mod tests {
         assert_eq!(rs.rank(1_000_000, false), 0);
 
         // .select(_, false)
-        assert_eq!(rs.select(0, false), None);
-        assert_eq!(rs.select(999_999, false), None);
-        assert_eq!(rs.select(1_000_000, false), None);
+        assert_eq!(rs.select(0, false), 1_000_000);
+        assert_eq!(rs.select(999_999, false), 1_000_000);
+        assert_eq!(rs.select(1_000_000, false), 1_000_000);
 
         assert_eq!(rs.zero_num(), 0);
         assert_eq!(rs.one_num(), 1_000_000);
