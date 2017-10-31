@@ -36,21 +36,29 @@ fn main() {
 
 ## Features
 
-### Basic WaveletMatrix operations
+### Basic/Classical WaveletMatrix operations
 
 Given unsigned integer sequence A, it provides the following queries: 
-- `.access(pos)`: returns the value of A[pos]
-- `.rank(pos, value)`: count value included in A[0..pos]
+- `.len()`: returns the length of A.
+- `.lookup(pos)`: returns the value at the position pos of A, A[pos].
+- `.rank(pos, value)`: counts value included in A[0..pos]. 
+  - Note: pos is exclusive. When pos is 0, .rank() always returns 0.
 - `.select(rank, value)`: return the position of the (rank+1)-th value
+  - Note: When found nothing, it returns .len() instead of None.
 
 ### Advanced queries
 
 - to be added
 
-## TODO
+## Releases 
+
+### v0.3.0
+- [INCOMPATIBLE] .select() now returns .len() instead of None.
+
+### TODO
 
 - Implement .top_n for WaveletMatrix
-- Add prefix queries like `.prefix_rank()` and `.prefix_select()`
+- Add prefix queries like `.prefix_rank()` and `.prefix_select()`. They will be much faster and useful for IPv4 prefix search (eg. searching for 192.168.12.0/24).
 - Add less_than queries like `.rank_less_than()` and the variations with the other operators such as `equal`, `greater_than`
 - Add ranged queries like `.ranged_rank()` and `.ranged_select()`. 
 - We may need to come up with the better name for those queries, though.
@@ -62,6 +70,7 @@ Given unsigned integer sequence A, it provides the following queries:
 - Profiling
 - Optimize underlying rsdic structure.
 - Add travis CI.
+- Add u128 support or arbitrary-length integer support
 
 - The fastest implementation on the planet 
 
