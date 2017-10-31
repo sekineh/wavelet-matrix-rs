@@ -1,4 +1,7 @@
-# wavelet-matrix
+# wavelet-matrix crate for the Rust language
+
+The Wavelet Matrix is a space-efficient variant of Wavelet Tree data structure.
+- https://en.wikipedia.org/wiki/Wavelet_Tree
 
 ## Usage
 
@@ -40,15 +43,37 @@ Given unsigned integer sequence A, it provides the following queries:
 - `.rank(pos, value)`: count value included in A[0..pos]
 - `.select(rank, value)`: return the position of the (rank+1)-th value
 
+### Advanced queries
+
+- to be added
+
 ## TODO
 
 - Implement .top_n for WaveletMatrix
 - Add prefix queries like `.prefix_rank()` and `.prefix_select()`
+- Add less_than queries like `.rank_less_than()` and the variations with the other operators such as `equal`, `greater_than`
+- Add ranged queries like `.ranged_rank()` and `.ranged_select()`. 
+- We may need to come up with the better name for those queries, though.
 - impl SpaceUsage for WaveletMatrix
-- Benchmark.
+- Add Benchmark.
   - Implement same queries using trivial algorithm
   - Compare wm's queries against trivial one.
   - Make a nice plot.
+- Profiling
+- Optimize underlying rsdic structure.
+- Add travis CI.
 
+- The fastest implementation on the planet 
 
+## Credits
 
+- A Go package for myriad array operations using wavelet trees
+  - https://github.com/hillbig/waveletTree
+  - Basically, the algorithm is deeply derived from the above Go implementation.
+
+- excellent slides in Japanese
+  - https://www.slideshare.net/pfi/ss-15916040
+  - https://www.slideshare.net/bonprosoft/the-wavelet-matrix
+
+- The original inventor's pdf:
+  - http://www.dcc.uchile.cl/~gnavarro/ps/spire12.4.pdf
