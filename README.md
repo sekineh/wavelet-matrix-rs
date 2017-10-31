@@ -62,7 +62,6 @@ Given unsigned integer sequence A, it provides the following queries:
 - Add less_than queries like `.rank_less_than()` and the variations with the other operators such as `equal`, `greater_than`
 - Add ranged queries like `.ranged_rank()` and `.ranged_select()`. 
 - We may need to come up with the better name for those queries, though.
-- impl SpaceUsage for WaveletMatrix
 - Add Benchmark.
   - Implement same queries using trivial algorithm
   - Compare wm's queries against trivial one.

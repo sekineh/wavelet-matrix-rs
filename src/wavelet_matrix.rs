@@ -1,3 +1,4 @@
+use succinct::SpaceUsage;
 use rsdic_simple::*;
 
 /// WaveletMatrix supports various near-O(1) queries on the sequence of integers.
@@ -113,7 +114,7 @@ impl WaveletMatrix {
     }
 
     /// Return the position of (rank+1)-th val in T.
-    /// 
+    ///
     /// If no match has been found, it returns the length of self.
     pub fn select(&self, rank: usize, val: u64) -> usize {
         self.select_helper(rank, val, 0, 0)
@@ -145,6 +146,16 @@ fn get_bit_msb(x: u64, pos: u8, blen: u8) -> bool {
 
 fn get_bit_lsb(x: u64, pos: u8) -> bool {
     ((x >> pos) & 1) == 1
+}
+
+impl SpaceUsage for WaveletMatrix {
+    fn is_stack_only() -> bool {
+        false
+    }
+
+    fn heap_bytes(&self) -> usize {
+        self.layers.iter().map(|x| x.heap_bytes()).sum()
+    }
 }
 
 /// Thin builder that builds WaveletMatrix
@@ -231,5 +242,7 @@ mod tests {
         assert_eq!(wm.select(1, 11), 4);
         assert_eq!(wm.select(2, 11), 5);
         assert_eq!(wm.select(3, 11), 5);
+
+        // assert_eq!(wm.total_bytes(), 336); // Only true for now with x64
     }
 }
