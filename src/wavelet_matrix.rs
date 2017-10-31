@@ -97,17 +97,27 @@ impl WaveletMatrix {
     ///
     /// The range specified is half open, i.e. [0, pos).
     pub fn rank(&self, pos: usize, val: u64) -> usize {
-        let mut bpos = 0;
-        let mut epos = pos;
+        self.prefix_rank(0, pos, val, 0)
+    }
 
-        for depth in 0..self.bit_len {
-            let rsd = &self.layers[depth as usize];
-            let bit = get_bit_msb(val, depth, self.bit_len);
-            bpos = rsd.rank(bpos, bit);
-            epos = rsd.rank(epos, bit);
-            if bit {
-                bpos += rsd.zero_num();
-                epos += rsd.zero_num();
+    /// .rank() with:
+    /// - range support bpos..epos
+    /// - prefix search support (ignore_bit)
+    #[inline]
+    fn prefix_rank(&self, bpos: usize, epos: usize, val: u64, ignore_bit: u8) -> usize {
+        let mut bpos = bpos;
+        let mut epos = epos;
+
+        if self.bit_len > ignore_bit {
+            for depth in 0..self.bit_len - ignore_bit {
+                let rsd = &self.layers[depth as usize];
+                let bit = get_bit_msb(val, depth, self.bit_len);
+                bpos = rsd.rank(bpos, bit);
+                epos = rsd.rank(epos, bit);
+                if bit {
+                    bpos += rsd.zero_num();
+                    epos += rsd.zero_num();
+                }
             }
         }
         epos - bpos
