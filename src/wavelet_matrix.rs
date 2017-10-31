@@ -127,11 +127,15 @@ impl WaveletMatrix {
     ///
     /// If no match has been found, it returns the length of self.
     pub fn select(&self, rank: usize, val: u64) -> usize {
-        self.select_helper(rank, val, 0, 0)
+        self.select_helper(rank, val, 0, 0, 0)
     }
 
-    fn select_helper(&self, rank: usize, val: u64, pos: usize, depth: u8) -> usize {
-        if depth == self.bit_len {
+    /// ignore_bit: experimental support for prefix search
+    fn select_helper(&self, rank: usize, val: u64, pos: usize, depth: u8, ignore_bit: u8) -> usize {
+        if self.bit_len < ignore_bit {
+            return pos + rank; // may overflow the len()?
+        }
+        if depth == self.bit_len - ignore_bit {
             return pos + rank;
         }
         let mut pos = pos;
@@ -141,10 +145,10 @@ impl WaveletMatrix {
         let rsd = &self.layers[depth as usize];
         if !bit {
             pos = rsd.rank(pos, bit);
-            rank = self.select_helper(rank, val, pos, depth + 1);
+            rank = self.select_helper(rank, val, pos, depth + 1, ignore_bit);
         } else {
             pos = rsd.zero_num() + rsd.rank(pos, bit);
-            rank = self.select_helper(rank, val, pos, depth + 1) - rsd.zero_num();
+            rank = self.select_helper(rank, val, pos, depth + 1, ignore_bit) - rsd.zero_num();
         }
         rsd.select(rank, bit)
     }
