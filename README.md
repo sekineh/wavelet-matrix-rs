@@ -8,7 +8,7 @@ The Wavelet Matrix is a space-efficient variant of Wavelet Tree data structure.
 Add to Cargo.toml:
 ```
 [dependencies]
-wavelet-matrix = "0.2.0"
+wavelet-matrix = "0.3.0"
 ```
 
 Add to lib.rs or main.rs
@@ -28,7 +28,7 @@ fn main() {
     assert_eq!(wm.len(), 12);
     assert_eq!(wm.lookup(7), 6);
     assert_eq!(wm.rank(5, 1), 2);
-    assert_eq!(wm.select(2, 2), Some(10));
+    assert_eq!(wm.select(2, 2), 10);
 
     println!("Worked as expected!");
 }
