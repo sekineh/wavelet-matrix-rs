@@ -41,6 +41,7 @@ Given unsigned integer sequence A, it provides the following queries.
 ### Counting
 
 - `.count(pos_range, value)`: returns the number of the element which satisfies `e == value` included in A[pos_range]
+- `.count_prefix(pos_range, value, ignore_bit)`: returns the number of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in A[pos_range]
 - `.count_lt(pos_range, value)`: returns the number of the element which satisfies `e < value` included in A[pos_range]
 - `.count_gt(pos_range, value)`: returns the number of the element which satisfies `e > value` included in A[pos_range]
 - `.count_range(pos_range, val_range)`: returns the number of the element which satisfies `val_range.start <= e < val_range.end` included in A[pos_range]

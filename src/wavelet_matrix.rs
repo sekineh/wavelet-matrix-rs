@@ -102,24 +102,30 @@ impl WaveletMatrix {
     }
 
     /// Returns the number of the element which satisfies `e == value` included in A[pos_range]
-    fn count(&self, pos_range: Range<usize>, value: u64) -> usize {
+    pub fn count(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Operator::Equal)
     }
 
     /// Returns the number of the element which satisfies `e < value` included in A[pos_range]
-    fn count_lt(&self, pos_range: Range<usize>, value: u64) -> usize {
+    pub fn count_lt(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Operator::LessThan)
     }
 
     /// Returns the number of the element which satisfies `e > value` included in A[pos_range]
-    fn count_gt(&self, pos_range: Range<usize>, value: u64) -> usize {
+    pub fn count_gt(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Operator::GreaterThan)
     }
 
+    /// Returns the number of the element which satisfies `(e >> ignore_bit) == (val >> ignore_bit)` included in A[pos_range]
+    pub fn count_prefix(&self, pos_range: Range<usize>, value: u64, ignore_bit: u8) -> usize {
+        self.prefix_rank_op(pos_range, value, ignore_bit, Operator::Equal)
+    }
+
     /// Returns the number of the element which satisfies `val_range.start <= e < val_range.end` included in A[pos_range]
-    fn count_range(&self, pos_range: Range<usize>, val_range: Range<u64>) -> usize {
+    pub fn count_range(&self, pos_range: Range<usize>, val_range: Range<u64>) -> usize {
         self.count_lt(pos_range.clone(), val_range.end) - self.count_lt(pos_range, val_range.start)
     }
+
 
     /// Returns the number of val found in T[0..pos].
     ///
@@ -268,11 +274,17 @@ fn get_bit_len(val: u64) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(test)]
     extern crate rand;
+    extern crate num;
 
+    use self::rand::distributions::range::SampleRange;
     use super::*;
-    // use super::rand;
+    use self::rand::distributions;
+    use wavelet_matrix::tests::rand::distributions::IndependentSample;
+    // use super::std;
+    // use self::rand::distributions;
+    // use self::rand::Rng;
+
     #[test]
     fn example() {
         let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
@@ -288,6 +300,11 @@ mod tests {
         assert_eq!(wm.count(0..wm.len(), 5), 1);
         assert_eq!(wm.count(0..wm.len(), 7), 0);
         assert_eq!(wm.count(0..wm.len(), 39), 0);
+
+        assert_eq!(wm.count_prefix(0..wm.len(), 8, 3), 1);
+        assert_eq!(wm.count_prefix(0..wm.len(), 6, 1), 1);
+        assert_eq!(wm.count_prefix(0..wm.len(), 0, 1), 4);
+        assert_eq!(wm.count_prefix(0..wm.len(), 0, 2), 7);
 
         assert_eq!(wm.count_lt(0..wm.len(), 2), 4);
         assert_eq!(wm.count_lt(0..wm.len(), 7), 11);
@@ -346,16 +363,51 @@ mod tests {
 
     const LEN: usize = 1_000;
 
-    #[test]
-    fn random_1000_lookup() {
+    fn random_upto(max: u64) -> u64 
+    {
+        let range = distributions::range::Range::new(0, max);
+        let mut rng = rand::thread_rng();
+        range.ind_sample(&mut rng)
+    }
+
+    // fn random_upto<T>(max: T) -> T
+    // where T: num::Unsigned
+    // {
+    //     let range = distributions::range::Range::new(0, max);
+    //     let mut rng = rand::thread_rng();
+    //     range.ind_sample(&mut rng)
+    // }
+
+    fn compare_lookup(len: usize, val_max: u64) {
+
         let mut vec: Vec<u64> = Vec::new();
-        for _ in 0..LEN {
-            vec.push(rand::random());
+        for _ in 0..len {
+            vec.push(random_upto(val_max)); // u64
         }
         let wm = WaveletMatrix::new(&vec);
-        assert_eq!(wm.len(), vec.len());
-        for i in 0..LEN {
-            assert_eq!(wm.lookup(i), vec[i]);
+
+        assert_eq!(wm.dim, *vec.iter().max().unwrap() + 1);
+        assert_eq!(wm.num, len);
+        assert_eq!(wm.len(), len);
+
+        for _ in 0..1000 {
+            let idx = random_upto(wm.len() as u64) as usize;
+            assert_eq!(wm.lookup(idx), vec[idx]);
         }
+    }
+
+    #[test]
+    fn random_1000_lookup() {
+        // deep
+        compare_lookup(1000, 1i64 as u64);
+
+        // same order
+        compare_lookup(1000, 1025);
+        compare_lookup(1000, 1024);
+        compare_lookup(1000, 1023);
+        
+        // shallow
+        compare_lookup(1000, 256);
+        compare_lookup(1000, 255);
     }
 }
