@@ -5,16 +5,11 @@ The Wavelet Matrix is a space-efficient variant of Wavelet Tree data structure.
 
 ## Usage
 
-Add to Cargo.toml:
+After adding to Cargo.toml, add this line to lib.rs or main.rs.
 ```
-[dependencies]
-wavelet-matrix = "0.3.0"
+extern crate wavelet_matrix;
 ```
 
-Add to lib.rs or main.rs
-```
-extern crate wavelet_matrix; // Note: underscore is used here
-```
 ## Example
 
 Add to main.rs:
@@ -22,9 +17,9 @@ Add to main.rs:
 use wavelet_matrix::*;
 
 fn main() {
-    let vec = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
-
-    let wm = WaveletMatrix::new(vec);
+    let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
+    //                       0  1  2  3  4  5  6  7  8  9 10 11
+    let wm = WaveletMatrix::new(&vec);
     assert_eq!(wm.len(), 12);
     assert_eq!(wm.lookup(7), 6);
     assert_eq!(wm.rank(5, 1), 2);
@@ -36,11 +31,19 @@ fn main() {
 
 ## Features
 
-### Basic/Classical WaveletMatrix operations
+Given unsigned integer sequence A, it provides the following queries.
 
-Given unsigned integer sequence A, it provides the following queries: 
+### Basic operations
+
 - `.len()`: returns the length of A.
 - `.lookup(pos)`: returns the value at the position pos of A, A[pos].
+
+### Counting
+
+- `.count_value(pos_range, value)`: returns the number of the element which satisfies `e == value` included in A[pos_range]
+
+### Classical WaveletMatrix operations
+
 - `.rank(pos, value)`: counts value included in A[0..pos]. 
   - Note: pos is exclusive. When pos is 0, .rank() always returns 0.
 - `.select(rank, value)`: return the position of the (rank+1)-th value
@@ -51,6 +54,9 @@ Given unsigned integer sequence A, it provides the following queries:
 - to be added
 
 ## Releases 
+
+### v0.4.0
+- [INCOMPATIBLE] WaveletMatrix::new() takes &Vec<u64>, instead of Vec<u64>
 
 ### v0.3.0
 - [INCOMPATIBLE] .select() now returns .len() instead of None.

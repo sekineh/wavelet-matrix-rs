@@ -12,11 +12,11 @@ pub struct WaveletMatrix {
 
 impl WaveletMatrix {
     /// Create a new WaveletMatrix struct from a input Vec<u64>.
-    pub fn new(vals: Vec<u64>) -> WaveletMatrix {
+    pub fn new(vals: &Vec<u64>) -> WaveletMatrix {
         let dim = get_dim(&vals);
         let bit_len = get_bit_len(dim);
         let num = vals.len();
-        let mut zeros: Vec<u64> = vals;
+        let mut zeros: Vec<u64> = vals.clone();
         let mut ones: Vec<u64> = Vec::new();
         let mut layers: Vec<RsDic> = Vec::new();
 
@@ -192,7 +192,7 @@ impl WaveletMatrixBuilder {
     /// Build creates WaveletMatrix from this builder.
     /// It takes self, so the original builder won't be accessible later.
     pub fn build(self) -> WaveletMatrix {
-        WaveletMatrix::new(self.vals)
+        WaveletMatrix::new(&self.vals)
     }
 }
 
@@ -219,9 +219,14 @@ fn get_bit_len(val: u64) -> u8 {
     blen
 }
 
+
 #[cfg(test)]
 mod tests {
+    #[cfg(test)]
+    extern crate rand;
+
     use super::*;
+    // use super::rand;
 
     #[test]
     fn wavelet_matrix_sanity() {
@@ -258,5 +263,20 @@ mod tests {
         assert_eq!(wm.select(3, 11), 5);
 
         // assert_eq!(wm.total_bytes(), 336); // Only true for now with x64
+    }
+
+    const LEN: usize = 1_000;
+
+    #[test]
+    fn random_1000_lookup() {
+        let mut vec: Vec<u64> = Vec::new();
+        for _ in 0..LEN {
+            vec.push(rand::random());
+        }
+        let wm = WaveletMatrix::new(&vec);
+        assert_eq!(wm.len(), vec.len());
+        for i in 0..LEN {
+            assert_eq!(wm.lookup(i), vec[i]);
+        }
     }
 }
