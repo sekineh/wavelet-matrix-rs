@@ -1,5 +1,13 @@
+use std::ops::Range;
 use succinct::SpaceUsage;
 use rsdic_simple::*;
+
+#[derive(Debug)]
+pub enum Operator {
+    Equal,
+    LessThan,
+    GreaterThan,
+}
 
 /// WaveletMatrix supports various near-O(1) queries on the sequence of integers.
 #[derive(Debug)]
@@ -93,34 +101,72 @@ impl WaveletMatrix {
         val
     }
 
+    /// Returns the number of the element which satisfies `e == value` included in A[pos_range]
+    fn count(&self, pos_range: Range<usize>, value: u64) -> usize {
+        self.prefix_rank_op(pos_range, value, 0, Operator::Equal)
+    }
+
+    /// Returns the number of the element which satisfies `e < value` included in A[pos_range]
+    fn count_lt(&self, pos_range: Range<usize>, value: u64) -> usize {
+        self.prefix_rank_op(pos_range, value, 0, Operator::LessThan)
+    }
+
+    /// Returns the number of the element which satisfies `e > value` included in A[pos_range]
+    fn count_gt(&self, pos_range: Range<usize>, value: u64) -> usize {
+        self.prefix_rank_op(pos_range, value, 0, Operator::GreaterThan)
+    }
+
+    /// Returns the number of the element which satisfies `val_range.start <= e < val_range.end` included in A[pos_range]
+    fn count_range(&self, pos_range: Range<usize>, val_range: Range<u64>) -> usize {
+        self.count_lt(pos_range.clone(), val_range.end) - self.count_lt(pos_range, val_range.start)
+    }
+
     /// Returns the number of val found in T[0..pos].
     ///
     /// The range specified is half open, i.e. [0, pos).
     pub fn rank(&self, pos: usize, val: u64) -> usize {
-        self.prefix_rank(0, pos, val, 0)
+        self.prefix_rank_op(0..pos, val, 0, Operator::Equal)
     }
 
     /// .rank() with:
     /// - range support bpos..epos
     /// - prefix search support (ignore_bit)
+    /// - operator support
     #[inline]
-    fn prefix_rank(&self, bpos: usize, epos: usize, val: u64, ignore_bit: u8) -> usize {
-        let mut bpos = bpos;
-        let mut epos = epos;
+    fn prefix_rank_op(
+        &self,
+        pos_range: Range<usize>,
+        val: u64,
+        ignore_bit: u8,
+        operator: Operator,
+    ) -> usize {
+        let mut bpos = pos_range.start;
+        let mut epos = pos_range.end;
+        let mut rank = 0;
 
         if self.bit_len > ignore_bit {
             for depth in 0..self.bit_len - ignore_bit {
                 let rsd = &self.layers[depth as usize];
                 let bit = get_bit_msb(val, depth, self.bit_len);
-                bpos = rsd.rank(bpos, bit);
-                epos = rsd.rank(epos, bit);
                 if bit {
-                    bpos += rsd.zero_num();
-                    epos += rsd.zero_num();
+                    if let Operator::LessThan = operator {
+                        rank += rsd.rank(epos, false) - rsd.rank(bpos, false);
+                    }
+                    bpos = rsd.rank(bpos, bit) + rsd.zero_num();
+                    epos = rsd.rank(epos, bit) + rsd.zero_num();
+                } else {
+                    if let Operator::GreaterThan = operator {
+                        rank += rsd.rank(epos, true) - rsd.rank(bpos, true);
+                    }
+                    bpos = rsd.rank(bpos, bit);
+                    epos = rsd.rank(epos, bit);
                 }
             }
         }
-        epos - bpos
+        match operator {
+            Operator::Equal => epos - bpos,
+            _ => rank,
+        }
     }
 
     /// Return the position of (rank+1)-th val in T.
@@ -227,6 +273,35 @@ mod tests {
 
     use super::*;
     // use super::rand;
+    #[test]
+    fn example() {
+        let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
+        //                       0  1  2  3  4  5  6  7  8  9 10 11
+        let wm = WaveletMatrix::new(&vec);
+
+        assert_eq!(wm.len(), 12);
+        assert_eq!(wm.lookup(7), 6);
+
+        // Counting
+        assert_eq!(wm.count(0..wm.len(), 2), 3);
+        assert_eq!(wm.count(0..wm.len(), 4), 2);
+        assert_eq!(wm.count(0..wm.len(), 5), 1);
+        assert_eq!(wm.count(0..wm.len(), 7), 0);
+        assert_eq!(wm.count(0..wm.len(), 39), 0);
+
+        assert_eq!(wm.count_lt(0..wm.len(), 2), 4);
+        assert_eq!(wm.count_lt(0..wm.len(), 7), 11);
+
+        assert_eq!(wm.count_gt(0..wm.len(), 2), 5);
+        assert_eq!(wm.count_gt(0..wm.len(), 7), 1);
+
+        assert_eq!(wm.count_range(0..wm.len(), 0..10), 12);
+        assert_eq!(wm.count_range(0..wm.len(), 4..6), 3);
+
+        // classic .rank()/.select() API
+        assert_eq!(wm.rank(5, 1), 2);
+        assert_eq!(wm.select(2, 2), 10);
+    }
 
     #[test]
     fn wavelet_matrix_sanity() {
@@ -244,6 +319,10 @@ mod tests {
         assert_eq!(wm.lookup(3), 10);
         assert_eq!(wm.lookup(4), 11);
         // assert_eq!(wm.lookup(5), 11);
+
+        assert_eq!(wm.count(0..wm.len(), 11), 2);
+        assert_eq!(wm.count(0..wm.len(), 10), 1);
+        assert_eq!(wm.count(0..wm.len(), 5), 0);
 
         assert_eq!(wm.rank(0, 1), 0);
         assert_eq!(wm.rank(1, 1), 1);

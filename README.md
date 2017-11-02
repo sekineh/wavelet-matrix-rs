@@ -40,7 +40,10 @@ Given unsigned integer sequence A, it provides the following queries.
 
 ### Counting
 
-- `.count_value(pos_range, value)`: returns the number of the element which satisfies `e == value` included in A[pos_range]
+- `.count(pos_range, value)`: returns the number of the element which satisfies `e == value` included in A[pos_range]
+- `.count_lt(pos_range, value)`: returns the number of the element which satisfies `e < value` included in A[pos_range]
+- `.count_gt(pos_range, value)`: returns the number of the element which satisfies `e > value` included in A[pos_range]
+- `.count_range(pos_range, val_range)`: returns the number of the element which satisfies `val_range.start <= e < val_range.end` included in A[pos_range]
 
 ### Classical WaveletMatrix operations
 
@@ -56,6 +59,7 @@ Given unsigned integer sequence A, it provides the following queries.
 ## Releases 
 
 ### v0.4.0
+- Add `.count()`, `.count_lt()`, `.count_gt()` and `.count_range()`.
 - [INCOMPATIBLE] WaveletMatrix::new() takes &Vec<u64>, instead of Vec<u64>
 
 ### v0.3.0
@@ -64,10 +68,6 @@ Given unsigned integer sequence A, it provides the following queries.
 ### TODO
 
 - Implement .top_n for WaveletMatrix
-- Add prefix queries like `.prefix_rank()` and `.prefix_select()`. They will be much faster and useful for IPv4 prefix search (eg. searching for 192.168.12.0/24).
-- Add less_than queries like `.rank_less_than()` and the variations with the other operators such as `equal`, `greater_than`
-- Add ranged queries like `.ranged_rank()` and `.ranged_select()`. 
-- We may need to come up with the better name for those queries, though.
 - Add Benchmark.
   - Implement same queries using trivial algorithm
   - Compare wm's queries against trivial one.
