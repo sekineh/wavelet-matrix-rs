@@ -42,6 +42,7 @@ Given unsigned integer sequence A, it provides the following queries.
 
 - `.count(pos_range, value)`: returns the number of the element which satisfies `e == value` included in A[pos_range]
 - `.count_prefix(pos_range, value, ignore_bit)`: returns the number of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in A[pos_range]
+  - This will be useful for counting the number of IPv4 prefix such as `172.22.0.0/16`
 - `.count_lt(pos_range, value)`: returns the number of the element which satisfies `e < value` included in A[pos_range]
 - `.count_gt(pos_range, value)`: returns the number of the element which satisfies `e > value` included in A[pos_range]
 - `.count_range(pos_range, val_range)`: returns the number of the element which satisfies `val_range.start <= e < val_range.end` included in A[pos_range]
@@ -60,7 +61,7 @@ Given unsigned integer sequence A, it provides the following queries.
 ## Releases 
 
 ### v0.4.0
-- Add `.count()`, `.count_lt()`, `.count_gt()` and `.count_range()`.
+- Add `.count()`, `.count_prefix()`, `.count_lt()`, `.count_gt()` and `.count_range()`.
 - [INCOMPATIBLE] WaveletMatrix::new() takes &Vec<u64>, instead of Vec<u64>
 
 ### v0.3.0

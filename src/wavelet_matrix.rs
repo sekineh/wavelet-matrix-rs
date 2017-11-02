@@ -13,8 +13,8 @@ pub enum Operator {
 #[derive(Debug)]
 pub struct WaveletMatrix {
     layers: Vec<RsDic>,
-    dim: u64,    // = max vals + 1
-    num: usize,  // = layers[0].len()
+    dim: u64, // = max vals + 1
+    num: usize, // = layers[0].len()
     bit_len: u8, // = layers.len()
 }
 
@@ -32,20 +32,16 @@ impl WaveletMatrix {
             let mut next_zeros: Vec<u64> = Vec::new();
             let mut next_ones: Vec<u64> = Vec::new();
             let mut rsd_ = RsDicBuilder::new();
-            Self::filter(
-                &zeros,
-                bit_len - depth - 1,
-                &mut next_zeros,
-                &mut next_ones,
-                &mut rsd_,
-            );
-            Self::filter(
-                &ones,
-                bit_len - depth - 1,
-                &mut next_zeros,
-                &mut next_ones,
-                &mut rsd_,
-            );
+            Self::filter(&zeros,
+                         bit_len - depth - 1,
+                         &mut next_zeros,
+                         &mut next_ones,
+                         &mut rsd_);
+            Self::filter(&ones,
+                         bit_len - depth - 1,
+                         &mut next_zeros,
+                         &mut next_ones,
+                         &mut rsd_);
             zeros = next_zeros;
             ones = next_ones;
             layers.push(rsd_.build());
@@ -59,13 +55,11 @@ impl WaveletMatrix {
         }
     }
 
-    fn filter(
-        vals: &Vec<u64>,
-        shift: u8,
-        next_zeros: &mut Vec<u64>,
-        next_ones: &mut Vec<u64>,
-        rsd: &mut RsDicBuilder,
-    ) {
+    fn filter(vals: &Vec<u64>,
+              shift: u8,
+              next_zeros: &mut Vec<u64>,
+              next_ones: &mut Vec<u64>,
+              rsd: &mut RsDicBuilder) {
         for val in vals {
             let bit = get_bit_lsb(*val, shift);
             rsd.push_bit(bit);
@@ -139,13 +133,12 @@ impl WaveletMatrix {
     /// - prefix search support (ignore_bit)
     /// - operator support
     #[inline]
-    fn prefix_rank_op(
-        &self,
-        pos_range: Range<usize>,
-        val: u64,
-        ignore_bit: u8,
-        operator: Operator,
-    ) -> usize {
+    fn prefix_rank_op(&self,
+                      pos_range: Range<usize>,
+                      val: u64,
+                      ignore_bit: u8,
+                      operator: Operator)
+                      -> usize {
         let mut bpos = pos_range.start;
         let mut epos = pos_range.end;
         let mut rank = 0;
@@ -363,8 +356,7 @@ mod tests {
 
     const LEN: usize = 1_000;
 
-    fn random_upto(max: u64) -> u64 
-    {
+    fn random_upto(max: u64) -> u64 {
         let range = distributions::range::Range::new(0, max);
         let mut rng = rand::thread_rng();
         range.ind_sample(&mut rng)
@@ -378,11 +370,43 @@ mod tests {
     //     range.ind_sample(&mut rng)
     // }
 
-    fn compare_lookup(len: usize, val_max: u64) {
+    fn all_methods(wm: &WaveletMatrix,
+                   vec: &Vec<u64>,
+                   val: u64,
+                   ignore_bit: u8,
+                   range: Range<usize>) {
 
+        assert_eq!(wm.count(range.clone(), val),
+                   vec[range.clone()].iter().filter(|x| **x == val).count());
+        assert_eq!(wm.count(range.clone(), val + 1),
+                   vec[range.clone()].iter().filter(|x| **x == val + 1).count());
+
+        assert_eq!(wm.count_prefix(range.clone(), val, ignore_bit),
+                   vec[range.clone()]
+                       .iter()
+                       .filter(|x| (**x >> ignore_bit) == (val >> ignore_bit))
+                       .count());
+        assert_eq!(wm.count_prefix(range.clone(), val + 1, ignore_bit),
+                   vec[range.clone()]
+                       .iter()
+                       .filter(|x| (**x >> ignore_bit) == (val + 1 >> ignore_bit))
+                       .count());
+
+        assert_eq!(wm.count_lt(range.clone(), val),
+                   vec[range.clone()].iter().filter(|x| **x < val).count());
+        assert_eq!(wm.count_lt(range.clone(), val + 1),
+                   vec[range.clone()].iter().filter(|x| **x < val + 1).count());
+
+        assert_eq!(wm.count_gt(range.clone(), val),
+                   vec[range.clone()].iter().filter(|x| **x > val).count());
+        assert_eq!(wm.count_gt(range.clone(), val + 1),
+                   vec[range.clone()].iter().filter(|x| **x > val + 1).count());
+    }
+
+    fn random_test(len: usize, val_max: u64) {
         let mut vec: Vec<u64> = Vec::new();
         for _ in 0..len {
-            vec.push(random_upto(val_max)); // u64
+            vec.push(random_upto(val_max));
         }
         let wm = WaveletMatrix::new(&vec);
 
@@ -390,24 +414,37 @@ mod tests {
         assert_eq!(wm.num, len);
         assert_eq!(wm.len(), len);
 
-        for _ in 0..1000 {
+        for _ in 0..100 {
             let idx = random_upto(wm.len() as u64) as usize;
             assert_eq!(wm.lookup(idx), vec[idx]);
+
+            let val = vec[idx];
+            let ignore_bit = random_upto(wm.bit_len as u64) as u8;
+            let range = 0..wm.len();
+            all_methods(&wm, &vec, val, ignore_bit, range);
+
+            let range = 0..wm.len() / 2;
+            all_methods(&wm, &vec, val, ignore_bit, range);
+
+            let range = wm.len() / 2..wm.len();
+            all_methods(&wm, &vec, val, ignore_bit, range);
+
         }
     }
 
     #[test]
-    fn random_1000_lookup() {
-        // deep
-        compare_lookup(1000, 1i64 as u64);
-
-        // same order
-        compare_lookup(1000, 1025);
-        compare_lookup(1000, 1024);
-        compare_lookup(1000, 1023);
-        
-        // shallow
-        compare_lookup(1000, 256);
-        compare_lookup(1000, 255);
+    fn layers_64() {
+        random_test(1024, -1i64 as u64);
+        random_test(1023, -1i64 as u64);
+    }
+    #[test]
+    fn layers_7() {
+        random_test(1024, 128);
+        random_test(1023, 127);
+    }
+    #[test]
+    fn layers_4() {
+        random_test(10240, 16);
+        random_test(10231, 15);
     }
 }
