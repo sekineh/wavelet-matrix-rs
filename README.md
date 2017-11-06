@@ -20,8 +20,35 @@ fn main() {
     let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
     //                       0  1  2  3  4  5  6  7  8  9 10 11
     let wm = WaveletMatrix::new(&vec);
+
     assert_eq!(wm.len(), 12);
     assert_eq!(wm.lookup(7), 6);
+
+    // Counting
+    assert_eq!(wm.count(0..wm.len(), 2), 3);
+    assert_eq!(wm.count(0..wm.len(), 4), 2);
+    assert_eq!(wm.count(0..wm.len(), 5), 1);
+    assert_eq!(wm.count(0..wm.len(), 7), 0);
+    assert_eq!(wm.count(0..wm.len(), 39), 0);
+
+    assert_eq!(wm.count_prefix(0..wm.len(), 8, 3), 1);
+    assert_eq!(wm.count_prefix(0..wm.len(), 6, 1), 1);
+    assert_eq!(wm.count_prefix(0..wm.len(), 0, 1), 4);
+    assert_eq!(wm.count_prefix(0..wm.len(), 0, 2), 7);
+
+    assert_eq!(wm.count_lt(0..wm.len(), 2), 4);
+    assert_eq!(wm.count_lt(0..wm.len(), 7), 11);
+
+    assert_eq!(wm.count_gt(0..wm.len(), 2), 5);
+    assert_eq!(wm.count_gt(0..wm.len(), 7), 1);
+
+    assert_eq!(wm.count_range(0..wm.len(), 0..10), 12);
+    assert_eq!(wm.count_range(0..wm.len(), 4..6), 3);
+
+    // searching
+    assert_eq!(wm.find1st(0..wm.len(), 4), Some(6));
+
+    // classic .rank()/.select() API
     assert_eq!(wm.rank(5, 1), 2);
     assert_eq!(wm.select(2, 2), 10);
 
@@ -31,21 +58,34 @@ fn main() {
 
 ## Features
 
-Given unsigned integer sequence A, it provides the following queries.
+Given an unsigned integer sequence A, it provides the following queries.
 
 ### Basic operations
 
 - `.len()`: returns the length of A.
-- `.lookup(pos)`: returns the value at the position pos of A, A[pos].
+- `.lookup(pos)`: returns the value at the position of A, A[pos].
 
 ### Counting
 
-- `.count(pos_range, value)`: returns the number of the element which satisfies `e == value` included in A[pos_range]
-- `.count_prefix(pos_range, value, ignore_bit)`: returns the number of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in A[pos_range]
-  - This will be useful for counting the number of IPv4 prefix such as `172.22.0.0/16`
-- `.count_lt(pos_range, value)`: returns the number of the element which satisfies `e < value` included in A[pos_range]
-- `.count_gt(pos_range, value)`: returns the number of the element which satisfies `e > value` included in A[pos_range]
-- `.count_range(pos_range, val_range)`: returns the number of the element which satisfies `val_range.start <= e < val_range.end` included in A[pos_range]
+- `.count(start..end, value)`: returns the number of the element which satisfies `e == value` included in `A[start..end]`
+- `.count_prefix(start..end, value, ignore_bit)`: returns the number of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `A[start..end]`
+  - This will be useful for counting the number of IPv4 address that satisfies IPv4 prefix such as `192.168.10.0/24`. In this case, the ignore_bit will be 8.
+- `.count_lt(start..end, value)`: returns the number of the element which satisfies `e < value` included in `A[start..end]`
+- `.count_gt(start..end, value)`: returns the number of the element which satisfies `e > value` included in `A[start..end]`
+- `.count_range(start..end, val_start..val_end)`: returns the number of the element which satisfies `val_start <= e < val_end` included in `A[start..end]`
+
+### Searching
+
+- [EXPERIMENTAL] `.find1st(start..end, value)`: find the first index of the element which satisfies `e == value` included in `A[start..end]`
+- [TODO] implement iterator interface of the above.
+- [TODO] implement various conditions
+
+### Statistics
+
+- [TODO] `.top_k(start..end, k)`: list the (value, count) pairs in most-frequent-one-first order.
+- [TODO] `.values_ascending(start..end, k)`: list the (value, count) pairs in ascending order.
+- [TODO] `.values_descending(start..end, k)`: list the (value, count) pairs in descending order.
+- Should we implement the above functions using iterator interface?
 
 ### Classical WaveletMatrix operations
 
@@ -53,10 +93,6 @@ Given unsigned integer sequence A, it provides the following queries.
   - Note: pos is exclusive. When pos is 0, .rank() always returns 0.
 - `.select(rank, value)`: return the position of the (rank+1)-th value
   - Note: When found nothing, it returns .len() instead of None.
-
-### Advanced queries
-
-- to be added
 
 ## Releases 
 
