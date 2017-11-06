@@ -392,29 +392,18 @@ mod tests {
 
         assert_eq!(wm.count(range.clone(), val),
                    vec[range.clone()].iter().filter(|x| **x == val).count());
-        assert_eq!(wm.count(range.clone(), val + 1),
-                   vec[range.clone()].iter().filter(|x| **x == val + 1).count());
 
         assert_eq!(wm.count_prefix(range.clone(), val, ignore_bit),
                    vec[range.clone()]
                        .iter()
                        .filter(|x| (**x >> ignore_bit) == (val >> ignore_bit))
                        .count());
-        assert_eq!(wm.count_prefix(range.clone(), val + 1, ignore_bit),
-                   vec[range.clone()]
-                       .iter()
-                       .filter(|x| (**x >> ignore_bit) == (val + 1 >> ignore_bit))
-                       .count());
 
         assert_eq!(wm.count_lt(range.clone(), val),
                    vec[range.clone()].iter().filter(|x| **x < val).count());
-        assert_eq!(wm.count_lt(range.clone(), val + 1),
-                   vec[range.clone()].iter().filter(|x| **x < val + 1).count());
 
         assert_eq!(wm.count_gt(range.clone(), val),
                    vec[range.clone()].iter().filter(|x| **x > val).count());
-        assert_eq!(wm.count_gt(range.clone(), val + 1),
-                   vec[range.clone()].iter().filter(|x| **x > val + 1).count());
     }
 
     fn random_test(len: usize, val_max: u64) {
@@ -435,14 +424,16 @@ mod tests {
             let val = vec[idx];
             let ignore_bit = random_upto(wm.bit_len as u64) as u8;
             let range = 0..wm.len();
-            all_methods(&wm, &vec, val, ignore_bit, range);
+            all_methods(&wm, &vec, val, ignore_bit, range.clone());
+            all_methods(&wm, &vec, val + 1, ignore_bit, range.clone());
 
             let range = 0..wm.len() / 2;
-            all_methods(&wm, &vec, val, ignore_bit, range);
+            all_methods(&wm, &vec, val, ignore_bit, range.clone());
+            all_methods(&wm, &vec, val + 1, ignore_bit, range.clone());
 
             let range = wm.len() / 2..wm.len();
-            all_methods(&wm, &vec, val, ignore_bit, range);
-
+            all_methods(&wm, &vec, val, ignore_bit, range.clone());
+            all_methods(&wm, &vec, val + 1, ignore_bit, range.clone());
         }
     }
 
