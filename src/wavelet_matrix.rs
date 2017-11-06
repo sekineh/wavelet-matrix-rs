@@ -120,6 +120,17 @@ impl WaveletMatrix {
         self.count_lt(pos_range.clone(), val_range.end) - self.count_lt(pos_range, val_range.start)
     }
 
+    /// Find the first index of the element which satisfies `e == value` included in `A[start..end]`
+    pub fn find1st(&self, pos_range: Range<usize>, value: u64) -> Option<usize> {
+        let rank = self.rank(pos_range.start, value);
+        let pos = self.select(rank+1, value);
+        if pos < pos_range.end {
+            Some(pos)
+        } else {
+            None
+        }
+    }
+
 
     /// Returns the number of val found in T[0..pos].
     ///
@@ -307,6 +318,9 @@ mod tests {
 
         assert_eq!(wm.count_range(0..wm.len(), 0..10), 12);
         assert_eq!(wm.count_range(0..wm.len(), 4..6), 3);
+
+        // searching
+        assert_eq!(wm.find1st(0..wm.len(), 4), Some(6));
 
         // classic .rank()/.select() API
         assert_eq!(wm.rank(5, 1), 2);
