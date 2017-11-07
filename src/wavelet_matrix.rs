@@ -270,7 +270,11 @@ impl<'a> Iterator for WaveletMatrixSearch<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let pos = self.inner.select(self.rank, self.value);
         self.rank += 1;
-        if pos < self.range.end { Some(pos) } else { None }
+        if pos < self.range.end {
+            Some(pos)
+        } else {
+            None
+        }
     }
 }
 
@@ -343,7 +347,8 @@ mod tests {
 
         // searching
         assert_eq!(wm.find1st(0..wm.len(), 4), Some(2));
-        assert_eq!(wm.search(0..wm.len(), 4).collect::<Vec<usize>>(), vec![2, 6]);
+        assert_eq!(wm.search(0..wm.len(), 4).collect::<Vec<usize>>(),
+                   vec![2, 6]);
         assert_eq!(wm.search(3..wm.len(), 4).collect::<Vec<usize>>(), vec![6]);
         assert_eq!(wm.search(0..wm.len(), 7).collect::<Vec<usize>>(), vec![]);
 
@@ -409,7 +414,7 @@ mod tests {
     //     range.ind_sample(&mut rng)
     // }
 
-    fn all_methods(wm: &WaveletMatrix,
+    fn count_all(wm: &WaveletMatrix,
                    vec: &Vec<u64>,
                    val: u64,
                    ignore_bit: u8,
@@ -431,6 +436,21 @@ mod tests {
                    vec[range.clone()].iter().filter(|x| **x > val).count());
     }
 
+    fn search_all(wm: &WaveletMatrix,
+                   vec: &Vec<u64>,
+                   val: u64,
+                   ignore_bit: u8,
+                   range: Range<usize>) {
+
+        assert_eq!(wm.search(range.clone(), val).collect::<Vec<usize>>(),
+                   vec[range.clone()]
+                       .iter()
+                       .enumerate()
+                       .filter(|x| *x.1 == val)
+                       .map(|x| x.0 + range.start)
+                       .collect::<Vec<usize>>());
+    }
+
     fn random_test(len: usize, val_max: u64) {
         let mut vec: Vec<u64> = Vec::new();
         for _ in 0..len {
@@ -442,23 +462,23 @@ mod tests {
         assert_eq!(wm.num, len);
         assert_eq!(wm.len(), len);
 
-        for _ in 0..100 {
+        for i in 0..100 {
             let idx = random_upto(wm.len() as u64) as usize;
             assert_eq!(wm.lookup(idx), vec[idx]);
 
             let val = vec[idx];
             let ignore_bit = random_upto(wm.bit_len as u64) as u8;
-            let range = 0..wm.len();
-            all_methods(&wm, &vec, val, ignore_bit, range.clone());
-            all_methods(&wm, &vec, val + 1, ignore_bit, range.clone());
+            let a = random_upto(wm.len() as u64) as usize;
+            let b = random_upto(wm.len() as u64) as usize;
+            let range = ::std::cmp::min(a,b) .. ::std::cmp::max(a,b);
 
-            let range = 0..wm.len() / 2;
-            all_methods(&wm, &vec, val, ignore_bit, range.clone());
-            all_methods(&wm, &vec, val + 1, ignore_bit, range.clone());
-
-            let range = wm.len() / 2..wm.len();
-            all_methods(&wm, &vec, val, ignore_bit, range.clone());
-            all_methods(&wm, &vec, val + 1, ignore_bit, range.clone());
+            count_all(&wm, &vec, val, ignore_bit, range.clone());
+            count_all(&wm, &vec, val + 1, ignore_bit, range.clone());
+            
+            if i == 0 {
+                search_all(&wm, &vec, val, ignore_bit, range.clone());
+                search_all(&wm, &vec, val + 1, ignore_bit, range.clone());
+            }
         }
     }
 
