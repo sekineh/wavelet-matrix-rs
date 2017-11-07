@@ -122,15 +122,19 @@ impl WaveletMatrix {
 
     /// Find the first index of the element which satisfies `e == value` included in `A[start..end]`
     pub fn find1st(&self, pos_range: Range<usize>, value: u64) -> Option<usize> {
-        let rank = self.rank(pos_range.start, value);
-        let pos = self.select(rank+1, value);
-        if pos < pos_range.end {
-            Some(pos)
-        } else {
-            None
-        }
+        self.search(pos_range, value).next()
     }
 
+    /// Returns the iterator that generates indexes that satisfies the condition `e == value`.
+    pub fn search(&self, pos_range: Range<usize>, value: u64) -> WaveletMatrixSearch {
+        let rank = self.rank(pos_range.start, value);
+        WaveletMatrixSearch {
+            inner: &self,
+            range: pos_range,
+            rank: rank,
+            value: value,
+        }
+    }
 
     /// Returns the number of val found in T[0..pos].
     ///
@@ -189,7 +193,7 @@ impl WaveletMatrix {
     /// ignore_bit: experimental support for prefix search
     fn select_helper(&self, rank: usize, val: u64, pos: usize, depth: u8, ignore_bit: u8) -> usize {
         if self.bit_len < ignore_bit {
-            return pos + rank; // may overflow the len()?
+            return ::std::cmp::max(pos + rank, self.len());
         }
         if depth == self.bit_len - ignore_bit {
             return pos + rank;
@@ -249,6 +253,24 @@ impl WaveletMatrixBuilder {
     /// It takes self, so the original builder won't be accessible later.
     pub fn build(self) -> WaveletMatrix {
         WaveletMatrix::new(&self.vals)
+    }
+}
+
+// Iterator struct used for the WaveletMatrix::search()
+#[derive(Debug)]
+pub struct WaveletMatrixSearch<'a> {
+    inner: &'a WaveletMatrix, // underlying Wavelet Matrix
+    range: Range<usize>, // index range to be searched
+    rank: usize, // the next rank
+    value: u64, // value to be searched
+}
+
+impl<'a> Iterator for WaveletMatrixSearch<'a> {
+    type Item = usize;
+    fn next(&mut self) -> Option<Self::Item> {
+        let pos = self.inner.select(self.rank, self.value);
+        self.rank += 1;
+        if pos < self.range.end { Some(pos) } else { None }
     }
 }
 
@@ -320,7 +342,10 @@ mod tests {
         assert_eq!(wm.count_range(0..wm.len(), 4..6), 3);
 
         // searching
-        assert_eq!(wm.find1st(0..wm.len(), 4), Some(6));
+        assert_eq!(wm.find1st(0..wm.len(), 4), Some(2));
+        assert_eq!(wm.search(0..wm.len(), 4).collect::<Vec<usize>>(), vec![2, 6]);
+        assert_eq!(wm.search(3..wm.len(), 4).collect::<Vec<usize>>(), vec![6]);
+        assert_eq!(wm.search(0..wm.len(), 7).collect::<Vec<usize>>(), vec![]);
 
         // classic .rank()/.select() API
         assert_eq!(wm.rank(5, 1), 2);
