@@ -76,7 +76,6 @@ Given an unsigned integer sequence A, it provides the following queries.
 
 ### Searching
 
-- [EXPERIMENTAL] `.find1st(start..end, value)`: find the first index of the element which satisfies `e == value` included in `A[start..end]`
 - [EXPERIMENTAL] `.search(start..end, value)`: returns the iterator that find indexes of the element which satisfies `e == value` included in `A[start..end]`
 - [EXPERIMENTAL] `.search_prefix(start..end, value, ignore_bit)`: returns the iterator that find indexes of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `A[start..end]`
 - [TODO] implement various conditions other than equal.

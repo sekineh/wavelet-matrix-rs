@@ -121,7 +121,7 @@ impl WaveletMatrix {
     }
 
     /// Find the first index of the element which satisfies `e == value` included in `A[start..end]`
-    pub fn find1st(&self, pos_range: Range<usize>, value: u64) -> Option<usize> {
+    fn find1st(&self, pos_range: Range<usize>, value: u64) -> Option<usize> {
         self.search(pos_range, value).next()
     }
 
