@@ -127,12 +127,18 @@ impl WaveletMatrix {
 
     /// Returns the iterator that generates indexes that satisfies the condition `e == value`.
     pub fn search(&self, pos_range: Range<usize>, value: u64) -> WaveletMatrixSearch {
-        let rank = self.rank(pos_range.start, value);
+        self.search_prefix(pos_range, value, 0)
+    }
+
+    /// Returns the iterator that generates indexes that satisfies the condition `e >> ignore_bit == value >> ignore_bit`.
+    pub fn search_prefix(&self, pos_range: Range<usize>, value: u64, ignore_bit: u8) -> WaveletMatrixSearch {
+        let rank = self.count_prefix(0..pos_range.start, value, ignore_bit);
         WaveletMatrixSearch {
             inner: &self,
             range: pos_range,
             rank: rank,
             value: value,
+            ignore_bit: ignore_bit,
         }
     }
 
@@ -193,10 +199,10 @@ impl WaveletMatrix {
     /// ignore_bit: experimental support for prefix search
     fn select_helper(&self, rank: usize, val: u64, pos: usize, depth: u8, ignore_bit: u8) -> usize {
         if self.bit_len < ignore_bit {
-            return ::std::cmp::max(pos + rank, self.len());
+            return ::std::cmp::min(pos + rank, self.len());
         }
         if depth == self.bit_len - ignore_bit {
-            return pos + rank;
+            return ::std::cmp::min(pos + rank, self.len());
         }
         let mut pos = pos;
         let mut rank = rank;
@@ -263,12 +269,13 @@ pub struct WaveletMatrixSearch<'a> {
     range: Range<usize>, // index range to be searched
     rank: usize, // the next rank
     value: u64, // value to be searched
+    ignore_bit: u8, // used in prefix search
 }
 
 impl<'a> Iterator for WaveletMatrixSearch<'a> {
     type Item = usize;
     fn next(&mut self) -> Option<Self::Item> {
-        let pos = self.inner.select(self.rank, self.value);
+        let pos = self.inner.select_helper(self.rank, self.value, 0, 0, self.ignore_bit);
         self.rank += 1;
         if pos < self.range.end {
             Some(pos)
@@ -447,6 +454,14 @@ mod tests {
                        .iter()
                        .enumerate()
                        .filter(|x| *x.1 == val)
+                       .map(|x| x.0 + range.start)
+                       .collect::<Vec<usize>>());
+
+        assert_eq!(wm.search_prefix(range.clone(), val, ignore_bit).collect::<Vec<usize>>(),
+                   vec[range.clone()]
+                       .iter()
+                       .enumerate()
+                       .filter(|x| *x.1 >> ignore_bit == val >> ignore_bit)
                        .map(|x| x.0 + range.start)
                        .collect::<Vec<usize>>());
     }
