@@ -1,6 +1,8 @@
 use std::ops::Range;
 use succinct::SpaceUsage;
 use rsdic_simple::*;
+use std::collections::BinaryHeap;
+use std::cmp::Ordering;
 
 #[derive(Debug)]
 pub enum Operator {
@@ -131,7 +133,11 @@ impl WaveletMatrix {
     }
 
     /// Returns the iterator that generates indexes that satisfies the condition `e >> ignore_bit == value >> ignore_bit`.
-    pub fn search_prefix(&self, pos_range: Range<usize>, value: u64, ignore_bit: u8) -> WaveletMatrixSearch {
+    pub fn search_prefix(&self,
+                         pos_range: Range<usize>,
+                         value: u64,
+                         ignore_bit: u8)
+                         -> WaveletMatrixSearch {
         let rank = self.count_prefix(0..pos_range.start, value, ignore_bit);
         WaveletMatrixSearch {
             inner: &self,
@@ -215,6 +221,89 @@ impl WaveletMatrix {
         }
         rsd.select(rank, bit)
     }
+
+    fn list_values(&self,
+                   pos_range: Range<usize>,
+                   val_range: Range<u64>,
+                   k: usize)
+                   -> Vec<ValueCount> {
+
+        let min_c = val_range.start;
+        let max_c = val_range.end;
+        let beg_pos = pos_range.start;
+        let end_pos = pos_range.end;
+        let mut res: Vec<ValueCount> = Vec::new();
+
+        if end_pos > self.len() || beg_pos >= end_pos {
+            return res;
+        }
+
+        let mut qons = BinaryHeap::new();
+
+        qons.push(QueryOnNode::new(0, self.len(), beg_pos, end_pos, 0, 0));
+
+        while res.len() < self.num && !qons.is_empty() {
+            let qon = qons.pop().unwrap();
+            if qon.depth >= self.bit_len {
+                res.push(ValueCount::new(qon.prefix_char, qon.end_pos - qon.beg_pos));
+            } else {
+                let next = self.expand_node(min_c, max_c, &qon);
+                for i in 0..next.len() {
+                    qons.push(next[i].clone());
+                }
+            }
+        }
+        res
+    }
+
+    fn expand_node(&self, min_c: u64, max_c: u64, qon: &QueryOnNode) -> Vec<QueryOnNode> {
+        let ba = &self.layers[qon.depth as usize];
+        let mut next = Vec::new();
+
+        let beg_node_zero = ba.rank(qon.beg_node, false);
+        let end_node_zero = ba.rank(qon.end_node, false);
+        let beg_node_one = qon.beg_node - beg_node_zero;
+        let beg_zero = ba.rank(qon.beg_pos, false);
+        let end_zero = ba.rank(qon.end_pos, false);
+        let beg_one = qon.beg_pos - beg_zero;
+        let end_one = qon.end_pos - end_zero;
+        let boundary = qon.beg_node + end_node_zero - beg_node_zero;
+
+        if end_zero - beg_zero > 0 {
+            // child for zero
+            let next_prefix = qon.prefix_char << 1;
+            if self.check_prefix(next_prefix, qon.depth + 1, min_c, max_c) {
+                next.push(QueryOnNode::new(qon.beg_node,
+                                           boundary,
+                                           qon.beg_node + beg_zero - beg_node_zero,
+                                           qon.beg_node + end_zero - beg_node_zero,
+                                           qon.depth + 1,
+                                           next_prefix));
+            }
+        }
+        if end_one - beg_one > 0 {
+            // child for one
+            let next_prefix = (qon.prefix_char << 1) + 1;
+            if self.check_prefix(next_prefix, qon.depth + 1, min_c, max_c) {
+                next.push(QueryOnNode::new(boundary,
+                                           qon.end_node,
+                                           boundary + beg_one - beg_node_one,
+                                           boundary + end_one - beg_node_one,
+                                           qon.depth + 1,
+                                           next_prefix));
+            }
+        }
+        next
+    }
+
+    fn check_prefix(&self, prefix: u64, depth: u8, min_c: u64, max_c: u64) -> bool {
+        Self::prefix_code(min_c, depth, self.bit_len) <= prefix &&
+        Self::prefix_code(max_c - 1, depth, self.bit_len) >= prefix
+    }
+
+    fn prefix_code(x: u64, len: u8, bit_num: u8) -> u64 {
+        x >> (bit_num - len)
+    }
 }
 
 fn get_bit_msb(x: u64, pos: u8, blen: u8) -> bool {
@@ -232,6 +321,74 @@ impl SpaceUsage for WaveletMatrix {
 
     fn heap_bytes(&self) -> usize {
         self.layers.iter().map(|x| x.heap_bytes()).sum()
+    }
+}
+
+#[derive(Debug, Clone, Eq)]
+struct QueryOnNode {
+    beg_node: usize,
+    end_node: usize,
+    beg_pos: usize,
+    end_pos: usize,
+    depth: u8,
+    prefix_char: u64,
+}
+
+impl QueryOnNode {
+    fn new(beg_node: usize,
+           end_node: usize,
+           beg_pos: usize,
+           end_pos: usize,
+           depth: u8,
+           prefix_char: u64)
+           -> Self {
+        QueryOnNode {
+            beg_node: beg_node,
+            end_node: end_node,
+            beg_pos: beg_pos,
+            end_pos: end_pos,
+            depth: depth,
+            prefix_char: prefix_char,
+        }
+    }
+}
+
+impl Ord for QueryOnNode {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if (self.end_pos - self.beg_pos != other.end_pos - other.beg_pos) {
+            (self.end_pos - self.beg_pos).cmp(&(other.end_pos - other.beg_pos))
+        } else if (self.depth != other.depth) {
+            self.depth.cmp(&other.depth)
+        } else {
+            other.beg_pos.cmp(&self.beg_pos)
+        }
+    }
+}
+
+impl PartialOrd for QueryOnNode {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
+impl PartialEq for QueryOnNode {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct ValueCount {
+    value: u64,
+    count: usize,
+}
+
+impl ValueCount {
+    fn new(value: u64, count: usize) -> Self {
+        ValueCount {
+            value: value,
+            count: count,
+        }
     }
 }
 
@@ -322,7 +479,7 @@ mod tests {
     #[test]
     fn example() {
         let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
-        //                       0  1  2  3  4  5  6  7  8  9 10 11
+        //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
         let wm = WaveletMatrix::new(&vec);
 
         assert_eq!(wm.len(), 12);
@@ -350,11 +507,13 @@ mod tests {
         assert_eq!(wm.count_range(0..wm.len(), 4..6), 3);
 
         // searching
-        assert_eq!(wm.find1st(0..wm.len(), 4), Some(2));
         assert_eq!(wm.search(0..wm.len(), 4).collect::<Vec<usize>>(),
                    vec![2, 6]);
         assert_eq!(wm.search(3..wm.len(), 4).collect::<Vec<usize>>(), vec![6]);
         assert_eq!(wm.search(0..wm.len(), 7).collect::<Vec<usize>>(), vec![]);
+
+        // statistics
+        assert_eq!(wm.list_values(0..wm.len(), 0..wm.dim, 12), vec![]);
 
         // classic .rank()/.select() API
         assert_eq!(wm.rank(5, 1), 2);
@@ -419,10 +578,10 @@ mod tests {
     // }
 
     fn count_all(wm: &WaveletMatrix,
-                   vec: &Vec<u64>,
-                   val: u64,
-                   ignore_bit: u8,
-                   range: Range<usize>) {
+                 vec: &Vec<u64>,
+                 val: u64,
+                 ignore_bit: u8,
+                 range: Range<usize>) {
 
         assert_eq!(wm.count(range.clone(), val),
                    vec[range.clone()].iter().filter(|x| **x == val).count());
@@ -441,10 +600,10 @@ mod tests {
     }
 
     fn search_all(wm: &WaveletMatrix,
-                   vec: &Vec<u64>,
-                   val: u64,
-                   ignore_bit: u8,
-                   range: Range<usize>) {
+                  vec: &Vec<u64>,
+                  val: u64,
+                  ignore_bit: u8,
+                  range: Range<usize>) {
 
         assert_eq!(wm.search(range.clone(), val).collect::<Vec<usize>>(),
                    vec[range.clone()]
@@ -482,11 +641,11 @@ mod tests {
             let ignore_bit = random_upto(wm.bit_len as u64) as u8;
             let a = random_upto(wm.len() as u64) as usize;
             let b = random_upto(wm.len() as u64) as usize;
-            let range = ::std::cmp::min(a,b) .. ::std::cmp::max(a,b);
+            let range = ::std::cmp::min(a, b)..::std::cmp::max(a, b);
 
             count_all(&wm, &vec, val, ignore_bit, range.clone());
             count_all(&wm, &vec, val + 1, ignore_bit, range.clone());
-            
+
             if i == 0 {
                 search_all(&wm, &vec, val, ignore_bit, range.clone());
                 search_all(&wm, &vec, val + 1, ignore_bit, range.clone());
