@@ -62,29 +62,41 @@ Given an unsigned integer sequence A, it provides the following queries.
 
 ### Basic operations
 
-- `.len()`: returns the length of A.
-- `.lookup(pos)`: returns the value at the position of A, A[pos].
+- `.len()`: 
+  - returns the length of A.
+- `.lookup(pos)`: 
+  - returns the value at the position of A, A[pos].
 
 ### Counting
 
-- `.count(start..end, value)`: returns the number of the element which satisfies `e == value` included in `A[start..end]`
-- `.count_prefix(start..end, value, ignore_bit)`: returns the number of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `A[start..end]`
+- `.count(start..end, value)`:
+  - returns the number of the element which satisfies `e == value` included in `A[start..end]`
+- `.count_prefix(start..end, value, ignore_bit)`:
+  - returns the number of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `A[start..end]`
   - This will be useful for counting the number of IPv4 address that satisfies IPv4 prefix such as `192.168.10.0/24`. In this case, the ignore_bit will be 8.
-- `.count_lt(start..end, value)`: returns the number of the element which satisfies `e < value` included in `A[start..end]`
-- `.count_gt(start..end, value)`: returns the number of the element which satisfies `e > value` included in `A[start..end]`
-- `.count_range(start..end, val_start..val_end)`: returns the number of the element which satisfies `val_start <= e < val_end` included in `A[start..end]`
+- `.count_lt(start..end, value)`:
+  - returns the number of the element which satisfies `e < value` included in `A[start..end]`
+- `.count_gt(start..end, value)`:
+  - returns the number of the element which satisfies `e > value` included in `A[start..end]`
+- `.count_range(start..end, val_start..val_end)`:
+  - returns the number of the element which satisfies `val_start <= e < val_end` included in `A[start..end]`
 
 ### Searching
 
-- [EXPERIMENTAL] `.search(start..end, value)`: returns the iterator that find indexes of the element which satisfies `e == value` included in `A[start..end]`
-- [EXPERIMENTAL] `.search_prefix(start..end, value, ignore_bit)`: returns the iterator that find indexes of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `A[start..end]`
+- [EXPERIMENTAL] `.search(start..end, value)`:
+  - returns the iterator that find indexes of the element which satisfies `e == value` included in `A[start..end]`
+- [EXPERIMENTAL] `.search_prefix(start..end, value, ignore_bit)`:
+  - returns the iterator that find indexes of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `A[start..end]`
 - [TODO] implement various conditions other than equal.
 
 ### Statistics
 
-- [TODO] `.top_k(start..end, k)`: list the (value, count) pairs in most-frequent-one-first order.
-- [TODO] `.values_ascending(start..end, k)`: list the (value, count) pairs in ascending order.
-- [TODO] `.values_descending(start..end, k)`: list the (value, count) pairs in descending order.
+- [TODO] `.top_k(start..end, k)`:
+  - list the (value, count) pairs in most-frequent-one-first order.
+- [TODO] `.values_ascending(start..end, k)`:
+  - list the (value, count) pairs in ascending order.
+- [TODO] `.values_descending(start..end, k)`:
+  - list the (value, count) pairs in descending order.
 - Should we implement the above functions using iterator interface?
 
 ### Classical WaveletMatrix operations
