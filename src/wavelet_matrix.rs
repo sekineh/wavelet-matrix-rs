@@ -198,10 +198,7 @@ impl WaveletMatrix {
 
     /// ignore_bit: experimental support for prefix search
     fn select_helper(&self, rank: usize, val: u64, pos: usize, depth: u8, ignore_bit: u8) -> usize {
-        if self.bit_len < ignore_bit {
-            return ::std::cmp::min(pos + rank, self.len());
-        }
-        if depth == self.bit_len - ignore_bit {
+        if self.bit_len < ignore_bit || depth == self.bit_len - ignore_bit {
             return ::std::cmp::min(pos + rank, self.len());
         }
         let mut pos = pos;
@@ -209,12 +206,12 @@ impl WaveletMatrix {
 
         let bit = get_bit_msb(val, depth, self.bit_len);
         let rsd = &self.layers[depth as usize];
-        if !bit {
+        if bit {
+            pos = rsd.rank(pos, bit) + rsd.zero_num();
+            rank = self.select_helper(rank, val, pos, depth + 1, ignore_bit) - rsd.zero_num();
+        } else {
             pos = rsd.rank(pos, bit);
             rank = self.select_helper(rank, val, pos, depth + 1, ignore_bit);
-        } else {
-            pos = rsd.zero_num() + rsd.rank(pos, bit);
-            rank = self.select_helper(rank, val, pos, depth + 1, ignore_bit) - rsd.zero_num();
         }
         rsd.select(rank, bit)
     }
