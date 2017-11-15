@@ -106,10 +106,12 @@ Given an unsigned integer sequence A, it provides the following queries.
   - [TODO] implement iterator based on this.
   - [TODO] extensive testing.
   - [TODO] clarify the order of same count.
-- [TODO] `.min_k(start..end, val_start..val_end, k)`:
-  - list the (value, count) pairs in ascending order.
-- [TODO] `.max_k(start..end, val_start..val_end, k)`:
+- [EXPERIMENTAL] `.max_k(start..end, val_start..val_end, k)`:
   - list the (value, count) pairs in descending order.
+  - values are constrained to the range `val_start..val_end`.
+- [EXPERIMENTAL] `.min_k(start..end, val_start..val_end, k)`:
+  - list the (value, count) pairs in ascending order.
+  - values are constrained to the range `val_start..val_end`.
 - Should we implement the above functions using iterator interface?
 
 ### Classical WaveletMatrix operations

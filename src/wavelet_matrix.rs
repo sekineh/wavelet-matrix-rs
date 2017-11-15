@@ -223,6 +223,18 @@ impl WaveletMatrix {
         self.values::<NodeRangeByFrequency>(pos, val, k)
     }
 
+    /// list the (value, count) pairs in descending order.
+    /// values are constrained to the range `val_start..val_end`.
+    pub fn max_k(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(u64, usize)> {
+        self.values::<NodeRangeDescending>(pos, val, k)
+    }
+
+    /// list the (value, count) pairs in ascending order.
+    /// values are constrained to the range `val_start..val_end`.
+    pub fn min_k(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(u64, usize)> {
+        self.values::<NodeRangeAscending>(pos, val, k)
+    }
+
     fn values<N>(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(u64, usize)>
         where N: NodeRange
     {
@@ -382,6 +394,74 @@ impl PartialEq for NodeRangeByFrequency {
     }
 }
 
+/// QueryOnNode in Descending order
+#[derive(Debug, Clone, Eq)]
+struct NodeRangeDescending(QueryOnNode);
+
+impl NodeRange for NodeRangeDescending {
+    fn new(pos: Range<usize>, depth: u8, prefix_char: u64) -> Self {
+        NodeRangeDescending(QueryOnNode::new(pos, depth, prefix_char))
+    }
+    fn inner(&self) -> &QueryOnNode {
+        &self.0
+    }
+    fn from(qon: &QueryOnNode) -> Self {
+        NodeRangeDescending(qon.clone())
+    }
+}
+
+impl Ord for NodeRangeDescending {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.prefix_char.cmp(&other.0.prefix_char)
+    }
+}
+
+impl PartialOrd for NodeRangeDescending {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
+impl PartialEq for NodeRangeDescending {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+/// QueryOnNode in Ascending order
+#[derive(Debug, Clone, Eq)]
+struct NodeRangeAscending(QueryOnNode);
+
+impl NodeRange for NodeRangeAscending {
+    fn new(pos: Range<usize>, depth: u8, prefix_char: u64) -> Self {
+        NodeRangeAscending(QueryOnNode::new(pos, depth, prefix_char))
+    }
+    fn inner(&self) -> &QueryOnNode {
+        &self.0
+    }
+    fn from(qon: &QueryOnNode) -> Self {
+        NodeRangeAscending(qon.clone())
+    }
+}
+
+impl Ord for NodeRangeAscending {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.0.prefix_char.cmp(&self.0.prefix_char)
+    }
+}
+
+impl PartialOrd for NodeRangeAscending {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
+impl PartialEq for NodeRangeAscending {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
 /// Thin builder that builds WaveletMatrix
 #[derive(Debug)]
 pub struct WaveletMatrixBuilder {
@@ -504,6 +584,20 @@ mod tests {
         assert_eq!(wm.top_k(0..wm.len(), 0..10, 4),
                    vec![(2, 3), (1, 2), (4, 2), (0, 2)]);
         assert_eq!(wm.top_k(0..wm.len(), 2..9, 12),
+                   vec![(2, 3), (4, 2), (5, 1), (6, 1)]);
+
+        assert_eq!(wm.max_k(0..wm.len(), 0..10, 12),
+                   vec![(9, 1), (6, 1), (5, 1), (4, 2), (2, 3), (1, 2), (0, 2)]);
+        assert_eq!(wm.max_k(0..wm.len(), 0..10, 4),
+                   vec![(9, 1), (6, 1), (5, 1), (4, 2)]);
+        assert_eq!(wm.max_k(0..wm.len(), 2..9, 12),
+                   vec![(6, 1), (5, 1), (4, 2), (2, 3)]);
+
+        assert_eq!(wm.min_k(0..wm.len(), 0..10, 12),
+                   vec![(0, 2), (1, 2), (2, 3), (4, 2), (5, 1), (6, 1), (9, 1)]);
+        assert_eq!(wm.min_k(0..wm.len(), 0..10, 4),
+                   vec![(0, 2), (1, 2), (2, 3), (4, 2)]);
+        assert_eq!(wm.min_k(0..wm.len(), 2..9, 12),
                    vec![(2, 3), (4, 2), (5, 1), (6, 1)]);
 
         // classic .rank()/.select() API
