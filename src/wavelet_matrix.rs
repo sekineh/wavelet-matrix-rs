@@ -217,9 +217,15 @@ impl WaveletMatrix {
         rsd.select(rank, bit)
     }
 
-    /// list the (value, count) pairs in most-frequent-one-first order. 
+    /// list the (value, count) pairs in most-frequent-one-first order.
     /// values are constrained to the range `val_start..val_end`.
     pub fn top_k(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(u64, usize)> {
+        self.values::<NodeRangeByFrequency>(pos, val, k)
+    }
+
+    fn values<N>(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(u64, usize)>
+        where N: NodeRange
+    {
 
         let mut res = Vec::new();
 
@@ -227,22 +233,19 @@ impl WaveletMatrix {
             return res;
         }
 
-        let mut qons = BinaryHeap::new();
+        let mut qons: BinaryHeap<N> = BinaryHeap::new();
 
-        qons.push(QueryOnNode {
-            pos: pos,
-            depth: 0,
-            prefix_char: 0,
-        });
+        qons.push(NodeRange::new(pos, 0, 0));
 
         while res.len() < k && !qons.is_empty() {
             let qon = qons.pop().unwrap();
+            let qon = qon.inner();
             if qon.depth == self.bit_len {
-                res.push((qon.prefix_char, qon.pos.end - qon.pos.start));
+                res.push((qon.prefix_char, qon.pos_end - qon.pos_start));
             } else {
                 let next = self.expand_node(val.clone(), &qon);
                 for i in 0..next.len() {
-                    qons.push(next[i].clone());
+                    qons.push(NodeRange::from(&next[i]));
                 }
             }
         }
@@ -253,34 +256,25 @@ impl WaveletMatrix {
         let ba = &self.layers[qon.depth as usize];
         let mut next = Vec::new();
 
-        let bpos_zero = ba.rank(qon.pos.start, false);
-        let epos_zero = ba.rank(qon.pos.end, false);
+        let bpos_zero = ba.rank(qon.pos_start, false);
+        let epos_zero = ba.rank(qon.pos_end, false);
 
         let boundary = ba.zero_num();
-        let bpos_one = ba.rank(qon.pos.start, true) + boundary;
-        let epos_one = ba.rank(qon.pos.end, true) + boundary;
+        let bpos_one = ba.rank(qon.pos_start, true) + boundary;
+        let epos_one = ba.rank(qon.pos_end, true) + boundary;
 
         if epos_zero > bpos_zero {
             // child for zero
             let next_prefix = qon.prefix_char << 1;
             if self.check_prefix(next_prefix, qon.depth + 1, val.clone()) {
-                next.push(QueryOnNode {
-                    pos: bpos_zero..epos_zero,
-                    depth: qon.depth + 1,
-                    prefix_char: next_prefix,
-                });
+                next.push(QueryOnNode::new(bpos_zero..epos_zero, qon.depth + 1, next_prefix));
             }
         }
         if epos_one > bpos_one {
             // child for one
             let next_prefix = (qon.prefix_char << 1) + 1;
             if self.check_prefix(next_prefix, qon.depth + 1, val) {
-                next.push(QueryOnNode {
-                    // node: boundary..qon.node.end,
-                    pos: bpos_one..epos_one,
-                    depth: qon.depth + 1,
-                    prefix_char: next_prefix,
-                });
+                next.push(QueryOnNode::new(bpos_one..epos_one, qon.depth + 1, next_prefix));
             }
         }
         next
@@ -314,32 +308,75 @@ impl SpaceUsage for WaveletMatrix {
     }
 }
 
-#[derive(Debug, Clone, Eq)]
+
+/// Stores the node position during Wavelet Matrix traversing.
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd)]
 struct QueryOnNode {
-    pos: Range<usize>,
+    pos_start: usize,
+    pos_end: usize,
     depth: u8,
     prefix_char: u64,
 }
 
-impl Ord for QueryOnNode {
-    fn cmp(&self, other: &Self) -> Ordering {
-        if self.pos.end - self.pos.start != other.pos.end - other.pos.start {
-            (self.pos.end - self.pos.start).cmp(&(other.pos.end - other.pos.start))
-        } else if self.depth != other.depth {
-            self.depth.cmp(&other.depth)
-        } else {
-            self.pos.start.cmp(&other.pos.start)
+impl QueryOnNode {
+    fn new(pos: Range<usize>, depth: u8, prefix_char: u64) -> Self {
+        QueryOnNode {
+            pos_start: pos.start,
+            pos_end: pos.end,
+            depth: depth,
+            prefix_char: prefix_char,
         }
     }
 }
 
-impl PartialOrd for QueryOnNode {
+impl Ord for QueryOnNode {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self.pos_end - self.pos_start != other.pos_end - other.pos_start {
+            (self.pos_end - self.pos_start).cmp(&(other.pos_end - other.pos_start))
+        } else if self.depth != other.depth {
+            self.depth.cmp(&other.depth)
+        } else {
+            self.pos_start.cmp(&other.pos_start)
+        }
+    }
+}
+
+/// Comparator trait
+trait NodeRange: Ord {
+    fn new(pos: Range<usize>, depth: u8, prefix_char: u64) -> Self;
+    fn inner(&self) -> &QueryOnNode;
+    fn from(qon: &QueryOnNode) -> Self;
+}
+
+/// QueryOnNode orderd by frequency
+#[derive(Debug, Clone, Eq)]
+struct NodeRangeByFrequency(QueryOnNode);
+
+impl NodeRange for NodeRangeByFrequency {
+    fn new(pos: Range<usize>, depth: u8, prefix_char: u64) -> Self {
+        NodeRangeByFrequency(QueryOnNode::new(pos, depth, prefix_char))
+    }
+    fn inner(&self) -> &QueryOnNode {
+        &self.0
+    }
+    fn from(qon: &QueryOnNode) -> Self {
+        NodeRangeByFrequency(qon.clone())
+    }
+}
+
+impl Ord for NodeRangeByFrequency {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for NodeRangeByFrequency {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(&other))
     }
 }
 
-impl PartialEq for QueryOnNode {
+impl PartialEq for NodeRangeByFrequency {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
@@ -399,7 +436,7 @@ fn get_dim(vals: &[u64]) -> u64 {
     let mut dim: u64 = 0;
     for val in vals.iter() {
         if *val >= dim {
-            dim = val + 1;
+            dim = *val + 1;
         }
     }
     dim
@@ -455,13 +492,13 @@ mod tests {
         assert_eq!(wm.count_range(0..wm.len(), 0..10), 12);
         assert_eq!(wm.count_range(0..wm.len(), 4..6), 3);
 
-        // searching
+        // Searching
         assert_eq!(wm.search(0..wm.len(), 4).collect::<Vec<usize>>(),
                    vec![2, 6]);
         assert_eq!(wm.search(3..wm.len(), 4).collect::<Vec<usize>>(), vec![6]);
         assert_eq!(wm.search(0..wm.len(), 7).collect::<Vec<usize>>(), vec![]);
 
-        // statistics
+        // Statistics
         assert_eq!(wm.top_k(0..wm.len(), 0..10, 12),
                    vec![(2, 3), (1, 2), (4, 2), (0, 2), (5, 1), (6, 1), (9, 1)]);
         assert_eq!(wm.top_k(0..wm.len(), 0..10, 4),
