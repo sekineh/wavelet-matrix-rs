@@ -18,7 +18,7 @@ use wavelet_matrix::*;
 
 fn main() {
     let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
-    //                       0  1  2  3  4  5  6  7  8  9 10 11
+    //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
     let wm = WaveletMatrix::new(&vec);
 
     assert_eq!(wm.len(), 12);
@@ -45,14 +45,23 @@ fn main() {
     assert_eq!(wm.count_range(0..wm.len(), 0..10), 12);
     assert_eq!(wm.count_range(0..wm.len(), 4..6), 3);
 
-    // searching
-    assert_eq!(wm.find1st(0..wm.len(), 4), Some(6));
+    // Searching
+    assert_eq!(wm.search(0..wm.len(), 4).collect::<Vec<usize>>(),
+                vec![2, 6]);
+    assert_eq!(wm.search(3..wm.len(), 4).collect::<Vec<usize>>(), vec![6]);
+    assert_eq!(wm.search(0..wm.len(), 7).collect::<Vec<usize>>(), vec![]);
+
+    // Statistics
+    assert_eq!(wm.top_k(0..wm.len(), 0..10, 12),
+                vec![(2, 3), (1, 2), (4, 2), (0, 2), (5, 1), (6, 1), (9, 1)]);
+    assert_eq!(wm.top_k(0..wm.len(), 0..10, 4),
+                vec![(2, 3), (1, 2), (4, 2), (0, 2)]);
+    assert_eq!(wm.top_k(0..wm.len(), 2..9, 12),
+                vec![(2, 3), (4, 2), (5, 1), (6, 1)]);
 
     // classic .rank()/.select() API
     assert_eq!(wm.rank(5, 1), 2);
     assert_eq!(wm.select(2, 2), 10);
-
-    println!("Worked as expected!");
 }
 ```
 
