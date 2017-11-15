@@ -1,19 +1,22 @@
 # wavelet-matrix crate for the Rust language
 
 The Wavelet Matrix is a space-efficient variant of Wavelet Tree data structure.
+
 - https://en.wikipedia.org/wiki/Wavelet_Tree
 
 ## Usage
 
 After adding to Cargo.toml, add this line to lib.rs or main.rs.
-```
+
+```rust
 extern crate wavelet_matrix;
 ```
 
 ## Example
 
 Add to main.rs:
-```
+
+```rust
 use wavelet_matrix::*;
 
 fn main() {
@@ -71,9 +74,9 @@ Given an unsigned integer sequence A, it provides the following queries.
 
 ### Basic operations
 
-- `.len()`: 
+- `.len()`:
   - returns the length of A.
-- `.lookup(pos)`: 
+- `.lookup(pos)`:
   - returns the value at the position of A, A[pos].
 
 ### Counting
@@ -116,23 +119,28 @@ Given an unsigned integer sequence A, it provides the following queries.
 
 ### Classical WaveletMatrix operations
 
-- `.rank(pos, value)`: counts value included in A[0..pos]. 
+- `.rank(pos, value)`: counts value included in A[0..pos].
   - Note: pos is exclusive. When pos is 0, .rank() always returns 0.
 - `.select(rank, value)`: return the position of the (rank+1)-th value
   - Note: When found nothing, it returns .len() instead of None.
 
-## Releases 
+## Releases
 
-### v0.4.x
+### v0.4.2
+
+- Add `.top_k()`, `.max_k()` and `min_k()`.
 
 ### v0.4.1
+
 - Add `.search()` and `.search_prefix()`.
 
 ### v0.4.0
+
 - Add `.count()`, `.count_prefix()`, `.count_lt()`, `.count_gt()` and `.count_range()`.
-- [INCOMPATIBLE] WaveletMatrix::new() takes &Vec<u64>, instead of Vec<u64>
+- [INCOMPATIBLE] WaveletMatrix::new() takes `&Vec<u64>`, instead of `Vec<u64>`
 
 ### v0.3.0
+
 - [INCOMPATIBLE] .select() now returns .len() instead of None.
 
 ### TODO
@@ -147,7 +155,7 @@ Given an unsigned integer sequence A, it provides the following queries.
 - Add travis CI.
 - Add u128 support or arbitrary-length integer support
 
-- The fastest implementation on the planet 
+- The fastest implementation on the planet
 
 ## Credits
 
