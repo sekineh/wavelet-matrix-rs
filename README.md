@@ -83,19 +83,23 @@ Given an unsigned integer sequence A, it provides the following queries.
 
 ### Searching
 
-- [EXPERIMENTAL] `.search(start..end, value)`:
+- `.search(start..end, value)`:
   - returns the iterator that find indexes of the element which satisfies `e == value` included in `A[start..end]`
-- [EXPERIMENTAL] `.search_prefix(start..end, value, ignore_bit)`:
+- `.search_prefix(start..end, value, ignore_bit)`:
   - returns the iterator that find indexes of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `A[start..end]`
 - [TODO] implement various conditions other than equal.
 
 ### Statistics
 
 - [EXPERIMENTAL] `.top_k(start..end, val_start..val_end, k)`:
-  - list the (value, count) pairs in most-frequent-one-first order. values are constrained to the range `val_start..val_end`
-- [TODO] `.values_ascending(start..end, k)`:
+  - list the (value, count) pairs in most-frequent-one-first order.
+  - values are constrained to the range `val_start..val_end`.
+  - [TODO] implement iterator based on this.
+  - [TODO] extensive testing.
+  - [TODO] clarify the order of same count.
+- [TODO] `.min_k(start..end, val_start..val_end, k)`:
   - list the (value, count) pairs in ascending order.
-- [TODO] `.values_descending(start..end, k)`:
+- [TODO] `.max_k(start..end, val_start..val_end, k)`:
   - list the (value, count) pairs in descending order.
 - Should we implement the above functions using iterator interface?
 
@@ -107,6 +111,8 @@ Given an unsigned integer sequence A, it provides the following queries.
   - Note: When found nothing, it returns .len() instead of None.
 
 ## Releases 
+
+### v0.4.x
 
 ### v0.4.1
 - Add `.search()` and `.search_prefix()`.
