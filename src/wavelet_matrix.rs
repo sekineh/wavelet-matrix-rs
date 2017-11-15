@@ -222,32 +222,30 @@ impl WaveletMatrix {
         rsd.select(rank, bit)
     }
 
-    fn list_values(&self,
-                   pos_range: Range<usize>,
-                   val_range: Range<u64>,
-                   k: usize)
-                   -> Vec<ValueCount> {
+    /// list the (value, count) pairs in most-frequent-one-first order. 
+    /// values are constrained to the range `val_start..val_end`.
+    pub fn top_k(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(u64, usize)> {
 
-        let min_c = val_range.start;
-        let max_c = val_range.end;
-        let beg_pos = pos_range.start;
-        let end_pos = pos_range.end;
-        let mut res: Vec<ValueCount> = Vec::new();
+        let mut res = Vec::new();
 
-        if end_pos > self.len() || beg_pos >= end_pos {
+        if pos.start > self.len() || pos.start >= pos.end {
             return res;
         }
 
         let mut qons = BinaryHeap::new();
 
-        qons.push(QueryOnNode::new(0, self.len(), beg_pos, end_pos, 0, 0));
+        qons.push(QueryOnNode {
+            pos: pos,
+            depth: 0,
+            prefix_char: 0,
+        });
 
-        while res.len() < self.num && !qons.is_empty() {
+        while res.len() < k && !qons.is_empty() {
             let qon = qons.pop().unwrap();
-            if qon.depth >= self.bit_len {
-                res.push(ValueCount::new(qon.prefix_char, qon.end_pos - qon.beg_pos));
+            if qon.depth == self.bit_len {
+                res.push((qon.prefix_char, qon.pos.end - qon.pos.start));
             } else {
-                let next = self.expand_node(min_c, max_c, &qon);
+                let next = self.expand_node(val.clone(), &qon);
                 for i in 0..next.len() {
                     qons.push(next[i].clone());
                 }
@@ -256,49 +254,46 @@ impl WaveletMatrix {
         res
     }
 
-    fn expand_node(&self, min_c: u64, max_c: u64, qon: &QueryOnNode) -> Vec<QueryOnNode> {
+    fn expand_node(&self, val: Range<u64>, qon: &QueryOnNode) -> Vec<QueryOnNode> {
         let ba = &self.layers[qon.depth as usize];
         let mut next = Vec::new();
 
-        let beg_node_zero = ba.rank(qon.beg_node, false);
-        let end_node_zero = ba.rank(qon.end_node, false);
-        let beg_node_one = qon.beg_node - beg_node_zero;
-        let beg_zero = ba.rank(qon.beg_pos, false);
-        let end_zero = ba.rank(qon.end_pos, false);
-        let beg_one = qon.beg_pos - beg_zero;
-        let end_one = qon.end_pos - end_zero;
-        let boundary = qon.beg_node + end_node_zero - beg_node_zero;
+        let bpos_zero = ba.rank(qon.pos.start, false);
+        let epos_zero = ba.rank(qon.pos.end, false);
 
-        if end_zero - beg_zero > 0 {
+        let boundary = ba.zero_num();
+        let bpos_one = ba.rank(qon.pos.start, true) + boundary;
+        let epos_one = ba.rank(qon.pos.end, true) + boundary;
+
+        if epos_zero > bpos_zero {
             // child for zero
             let next_prefix = qon.prefix_char << 1;
-            if self.check_prefix(next_prefix, qon.depth + 1, min_c, max_c) {
-                next.push(QueryOnNode::new(qon.beg_node,
-                                           boundary,
-                                           qon.beg_node + beg_zero - beg_node_zero,
-                                           qon.beg_node + end_zero - beg_node_zero,
-                                           qon.depth + 1,
-                                           next_prefix));
+            if self.check_prefix(next_prefix, qon.depth + 1, val.clone()) {
+                next.push(QueryOnNode {
+                    pos: bpos_zero..epos_zero,
+                    depth: qon.depth + 1,
+                    prefix_char: next_prefix,
+                });
             }
         }
-        if end_one - beg_one > 0 {
+        if epos_one > bpos_one {
             // child for one
             let next_prefix = (qon.prefix_char << 1) + 1;
-            if self.check_prefix(next_prefix, qon.depth + 1, min_c, max_c) {
-                next.push(QueryOnNode::new(boundary,
-                                           qon.end_node,
-                                           boundary + beg_one - beg_node_one,
-                                           boundary + end_one - beg_node_one,
-                                           qon.depth + 1,
-                                           next_prefix));
+            if self.check_prefix(next_prefix, qon.depth + 1, val) {
+                next.push(QueryOnNode {
+                    // node: boundary..qon.node.end,
+                    pos: bpos_one..epos_one,
+                    depth: qon.depth + 1,
+                    prefix_char: next_prefix,
+                });
             }
         }
         next
     }
 
-    fn check_prefix(&self, prefix: u64, depth: u8, min_c: u64, max_c: u64) -> bool {
-        Self::prefix_code(min_c, depth, self.bit_len) <= prefix &&
-        Self::prefix_code(max_c - 1, depth, self.bit_len) >= prefix
+    fn check_prefix(&self, prefix: u64, depth: u8, val: Range<u64>) -> bool {
+        Self::prefix_code(val.start, depth, self.bit_len) <= prefix &&
+        prefix <= Self::prefix_code(val.end - 1, depth, self.bit_len)
     }
 
     fn prefix_code(x: u64, len: u8, bit_num: u8) -> u64 {
@@ -326,41 +321,19 @@ impl SpaceUsage for WaveletMatrix {
 
 #[derive(Debug, Clone, Eq)]
 struct QueryOnNode {
-    beg_node: usize,
-    end_node: usize,
-    beg_pos: usize,
-    end_pos: usize,
+    pos: Range<usize>,
     depth: u8,
     prefix_char: u64,
 }
 
-impl QueryOnNode {
-    fn new(beg_node: usize,
-           end_node: usize,
-           beg_pos: usize,
-           end_pos: usize,
-           depth: u8,
-           prefix_char: u64)
-           -> Self {
-        QueryOnNode {
-            beg_node: beg_node,
-            end_node: end_node,
-            beg_pos: beg_pos,
-            end_pos: end_pos,
-            depth: depth,
-            prefix_char: prefix_char,
-        }
-    }
-}
-
 impl Ord for QueryOnNode {
     fn cmp(&self, other: &Self) -> Ordering {
-        if (self.end_pos - self.beg_pos != other.end_pos - other.beg_pos) {
-            (self.end_pos - self.beg_pos).cmp(&(other.end_pos - other.beg_pos))
-        } else if (self.depth != other.depth) {
+        if self.pos.end - self.pos.start != other.pos.end - other.pos.start {
+            (self.pos.end - self.pos.start).cmp(&(other.pos.end - other.pos.start))
+        } else if self.depth != other.depth {
             self.depth.cmp(&other.depth)
         } else {
-            other.beg_pos.cmp(&self.beg_pos)
+            self.pos.start.cmp(&other.pos.start)
         }
     }
 }
@@ -374,21 +347,6 @@ impl PartialOrd for QueryOnNode {
 impl PartialEq for QueryOnNode {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
-    }
-}
-
-#[derive(Debug, Eq, PartialEq)]
-struct ValueCount {
-    value: u64,
-    count: usize,
-}
-
-impl ValueCount {
-    fn new(value: u64, count: usize) -> Self {
-        ValueCount {
-            value: value,
-            count: count,
-        }
     }
 }
 
@@ -513,7 +471,12 @@ mod tests {
         assert_eq!(wm.search(0..wm.len(), 7).collect::<Vec<usize>>(), vec![]);
 
         // statistics
-        assert_eq!(wm.list_values(0..wm.len(), 0..wm.dim, 12), vec![]);
+        assert_eq!(wm.top_k(0..wm.len(), 0..10, 12),
+                   vec![(2, 3), (1, 2), (4, 2), (0, 2), (5, 1), (6, 1), (9, 1)]);
+        assert_eq!(wm.top_k(0..wm.len(), 0..10, 4),
+                   vec![(2, 3), (1, 2), (4, 2), (0, 2)]);
+        assert_eq!(wm.top_k(0..wm.len(), 2..9, 12),
+                   vec![(2, 3), (4, 2), (5, 1), (6, 1)]);
 
         // classic .rank()/.select() API
         assert_eq!(wm.rank(5, 1), 2);

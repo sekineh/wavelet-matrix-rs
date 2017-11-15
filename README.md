@@ -91,8 +91,8 @@ Given an unsigned integer sequence A, it provides the following queries.
 
 ### Statistics
 
-- [TODO] `.top_k(start..end, k)`:
-  - list the (value, count) pairs in most-frequent-one-first order.
+- [EXPERIMENTAL] `.top_k(start..end, val_start..val_end, k)`:
+  - list the (value, count) pairs in most-frequent-one-first order. values are constrained to the range `val_start..val_end`
 - [TODO] `.values_ascending(start..end, k)`:
   - list the (value, count) pairs in ascending order.
 - [TODO] `.values_descending(start..end, k)`:
