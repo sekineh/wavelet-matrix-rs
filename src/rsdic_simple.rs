@@ -52,12 +52,12 @@ impl RsDic {
     }
 
     /// Return the position of the index'th occurrence of the value
-    /// 
-    /// If found nothing, it returns the length of the vector. 
+    ///
+    /// If found nothing, it returns the length of the vector.
     pub fn select(&self, index: usize, value: bool) -> usize {
         match self.select_support.select(index as u64, value) {
             Some(x) => x as usize,
-            None => self.len()
+            None => self.len(),
         }
     }
 }
