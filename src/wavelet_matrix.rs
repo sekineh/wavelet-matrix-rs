@@ -122,11 +122,6 @@ impl WaveletMatrix {
         self.count_lt(pos_range.clone(), val_range.end) - self.count_lt(pos_range, val_range.start)
     }
 
-    /// Find the first index of the element which satisfies `e == value` included in `A[start..end]`
-    fn find1st(&self, pos_range: Range<usize>, value: u64) -> Option<usize> {
-        self.search(pos_range, value).next()
-    }
-
     /// Returns the iterator that generates indexes that satisfies the condition `e == value`.
     pub fn search(&self, pos_range: Range<usize>, value: u64) -> WaveletMatrixSearch {
         self.search_prefix(pos_range, value, 0)
@@ -426,13 +421,9 @@ mod tests {
     extern crate rand;
     extern crate num;
 
-    use self::rand::distributions::range::SampleRange;
     use super::*;
     use self::rand::distributions;
     use wavelet_matrix::tests::rand::distributions::IndependentSample;
-    // use super::std;
-    // use self::rand::distributions;
-    // use self::rand::Rng;
 
     #[test]
     fn example() {
@@ -523,8 +514,6 @@ mod tests {
 
         // assert_eq!(wm.total_bytes(), 336); // Only true for now with x64
     }
-
-    const LEN: usize = 1_000;
 
     fn random_upto(max: u64) -> u64 {
         let range = distributions::range::Range::new(0, max);
