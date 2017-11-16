@@ -97,6 +97,13 @@ impl WaveletMatrix {
         val
     }
 
+    /// Returns the maximum value + 1.
+    ///
+    /// Useful to get the upper bound of value range.
+    pub fn dim(&self) -> u64 {
+        self.dim
+    }
+
     /// Returns the number of the element which satisfies `e == value` included in A[pos_range]
     pub fn count(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Operator::Equal)
@@ -339,16 +346,19 @@ impl QueryOnNode {
             prefix_char: prefix_char,
         }
     }
+    fn count(&self) -> usize {
+        self.pos_end - self.pos_start
+    }
 }
 
 impl Ord for QueryOnNode {
     fn cmp(&self, other: &Self) -> Ordering {
-        if self.pos_end - self.pos_start != other.pos_end - other.pos_start {
-            (self.pos_end - self.pos_start).cmp(&(other.pos_end - other.pos_start))
+        if self.count() != other.count() {
+            self.count().cmp(&other.count()) // wide node first
         } else if self.depth != other.depth {
-            self.depth.cmp(&other.depth)
+            self.depth.cmp(&other.depth) // deepest node first
         } else {
-            self.pos_start.cmp(&other.pos_start)
+            self.pos_start.cmp(&other.pos_start) // just to make the order more predictable
         }
     }
 }
@@ -537,6 +547,7 @@ fn get_bit_len(val: u64) -> u8 {
 mod tests {
     extern crate rand;
     // extern crate num;
+    extern crate itertools;
 
     use super::*;
     use self::rand::distributions;
@@ -652,19 +663,11 @@ mod tests {
         range.ind_sample(&mut rng)
     }
 
-    // fn random_upto<T>(max: T) -> T
-    // where T: num::Unsigned
-    // {
-    //     let range = distributions::range::Range::new(0, max);
-    //     let mut rng = rand::thread_rng();
-    //     range.ind_sample(&mut rng)
-    // }
-
-    fn count_all(wm: &WaveletMatrix,
-                 vec: &Vec<u64>,
-                 val: u64,
-                 ignore_bit: u8,
-                 range: Range<usize>) {
+    fn test_count_all(wm: &WaveletMatrix,
+                      vec: &Vec<u64>,
+                      val: u64,
+                      ignore_bit: u8,
+                      range: Range<usize>) {
 
         assert_eq!(wm.count(range.clone(), val),
                    vec[range.clone()].iter().filter(|x| **x == val).count());
@@ -682,11 +685,11 @@ mod tests {
                    vec[range.clone()].iter().filter(|x| **x > val).count());
     }
 
-    fn search_all(wm: &WaveletMatrix,
-                  vec: &Vec<u64>,
-                  val: u64,
-                  ignore_bit: u8,
-                  range: Range<usize>) {
+    fn test_search_all(wm: &WaveletMatrix,
+                       vec: &Vec<u64>,
+                       val: u64,
+                       ignore_bit: u8,
+                       range: Range<usize>) {
 
         assert_eq!(wm.search(range.clone(), val).collect::<Vec<usize>>(),
                    vec[range.clone()]
@@ -706,34 +709,49 @@ mod tests {
     }
 
     use std::collections::BTreeMap;
-    fn value_count(vec: &[u64]) -> BTreeMap<u64, usize> {
-        let mut map: BTreeMap<u64, usize> = BTreeMap::new();
-        for e in vec.iter() {
-            *map.entry(*e).or_insert(0) += 1;
+    fn value_count(vec: &[u64]) -> BTreeMap<u64, (usize, usize)> {
+        let mut map = BTreeMap::new();
+        for pos in 0..vec.len() {
+            let entry = map.entry(vec[pos]).or_insert((0, pos));
+            entry.0 = entry.0 + 1; // count += 1
         }
-        map
+        map // value => (count, 1st pos)
     }
 
-    fn test_maxmin_k(wm: &WaveletMatrix,
-                  vec: &Vec<u64>,
-                  vals: Range<u64>,
-                  range: Range<usize>) {
+    use self::itertools::Itertools;
+    fn test_ranking(wm: &WaveletMatrix, vec: &Vec<u64>, vals: Range<u64>, range: Range<usize>, len: usize) {
 
-        assert_eq!(wm.min_k(range.clone(), vals.clone(), 10),
+        assert_eq!(wm.min_k(range.clone(), vals.clone(), len),
                    value_count(&vec[range.clone()]).iter()
                        .into_iter()
-                       .filter(|&(val, _)| vals.start <= *val && *val < vals.end)
-                       .take(10)
-                       .map(|k| (*k.0, *k.1))
+                       .filter(|&(value, _count)| vals.start <= *value && *value < vals.end)
+                       .take(len)
+                       .map(|k| (*k.0, (k.1).0)) // value, count
                        .collect::<Vec<_>>());
 
-        assert_eq!(wm.max_k(range.clone(), vals.clone(), 10),
+        assert_eq!(wm.max_k(range.clone(), vals.clone(), len),
                    value_count(&vec[range.clone()]).iter()
                        .into_iter()
-                       .filter(|&(val, _)| vals.start <= *val && *val < vals.end)
+                       .filter(|&(value, _count)| vals.start <= *value && *value < vals.end)
                        .rev()
-                       .take(10)
-                       .map(|k| (*k.0, *k.1))
+                       .take(len)
+                       .map(|k| (*k.0, (k.1).0)) // (value, count)
+                       .collect::<Vec<_>>());
+
+        assert_eq!(wm.top_k(range.clone(), vals.clone(), len)
+                       .iter()
+                       .map(|&(_value, count)| count) // Note: currently only count is tested because value order is not predictable
+                       .collect::<Vec<_>>(),
+                   value_count(&vec[range.clone()]).iter()
+                       .into_iter()
+                       .filter(|&(value, _count)| vals.start <= *value && *value < vals.end)
+                       .sorted_by(|a, b| a.1.cmp(&b.1).reverse() ) // ordered by (count, first pos)
+                       .iter()
+                       .take(len)
+                       .map(|k| (*k.0, (k.1).0)) // (value, count)
+                       .collect::<Vec<_>>()
+                       .iter()
+                       .map(|&(_value, count)| count) // Note: currently only count is tested because value order is not predictable
                        .collect::<Vec<_>>());
     }
 
@@ -758,17 +776,18 @@ mod tests {
             let b = random_upto(wm.len() as u64) as usize;
             let range = ::std::cmp::min(a, b)..::std::cmp::max(a, b);
 
-            count_all(&wm, &vec, val, ignore_bit, range.clone());
-            count_all(&wm, &vec, val + 1, ignore_bit, range.clone());
+            test_count_all(&wm, &vec, val, ignore_bit, range.clone());
+            test_count_all(&wm, &vec, val + 1, ignore_bit, range.clone());
 
             if i == 0 {
-                search_all(&wm, &vec, val, ignore_bit, range.clone());
-                search_all(&wm, &vec, val + 1, ignore_bit, range.clone());
+                test_search_all(&wm, &vec, val, ignore_bit, range.clone());
+                test_search_all(&wm, &vec, val + 1, ignore_bit, range.clone());
 
                 let a = random_upto(wm.dim as u64) as u64;
                 let b = random_upto(wm.dim as u64) as u64;
                 let val_range = ::std::cmp::min(a, b)..::std::cmp::max(a, b);
-                test_maxmin_k(&wm, &vec, val_range, range.clone());
+                test_ranking(&wm, &vec, val_range.clone(), range.clone(), 10);
+                test_ranking(&wm, &vec, val_range.clone(), range.clone(), 10000);
             }
         }
     }
