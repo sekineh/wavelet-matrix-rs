@@ -29,9 +29,9 @@ impl RsDic {
         self.rank(self.len(), false)
     }
 
-    pub fn one_num(&self) -> usize {
-        self.rank(self.len(), true)
-    }
+    // pub fn one_num(&self) -> usize {
+    //     self.rank(self.len(), true)
+    // }
 
     /// Return the length of bits
     pub fn len(&self) -> usize {
@@ -136,6 +136,6 @@ mod tests {
         assert_eq!(rs.select(1_000_000, false), 1_000_000);
 
         assert_eq!(rs.zero_num(), 0);
-        assert_eq!(rs.one_num(), 1_000_000);
+        // assert_eq!(rs.one_num(), 1_000_000);
     }
 }
