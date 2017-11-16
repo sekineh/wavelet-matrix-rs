@@ -486,7 +486,7 @@ impl WaveletMatrixBuilder {
     }
 }
 
-// Iterator struct used for the WaveletMatrix::search()
+/// Iterator struct used by the WaveletMatrix::search()
 #[derive(Debug)]
 pub struct WaveletMatrixSearch<'a> {
     inner: &'a WaveletMatrix, // underlying Wavelet Matrix
@@ -536,7 +536,7 @@ fn get_bit_len(val: u64) -> u8 {
 #[cfg(test)]
 mod tests {
     extern crate rand;
-    extern crate num;
+    // extern crate num;
 
     use super::*;
     use self::rand::distributions;
@@ -578,7 +578,7 @@ mod tests {
         assert_eq!(wm.search(3..wm.len(), 4).collect::<Vec<usize>>(), vec![6]);
         assert_eq!(wm.search(0..wm.len(), 7).collect::<Vec<usize>>(), vec![]);
 
-        // Statistics
+        // Ranking
         assert_eq!(wm.top_k(0..wm.len(), 0..10, 12),
                    vec![(2, 3), (1, 2), (4, 2), (0, 2), (5, 1), (6, 1), (9, 1)]);
         assert_eq!(wm.top_k(0..wm.len(), 0..10, 4),
@@ -705,6 +705,38 @@ mod tests {
                        .collect::<Vec<usize>>());
     }
 
+    use std::collections::BTreeMap;
+    fn value_count(vec: &[u64]) -> BTreeMap<u64, usize> {
+        let mut map: BTreeMap<u64, usize> = BTreeMap::new();
+        for e in vec.iter() {
+            *map.entry(*e).or_insert(0) += 1;
+        }
+        map
+    }
+
+    fn test_maxmin_k(wm: &WaveletMatrix,
+                  vec: &Vec<u64>,
+                  vals: Range<u64>,
+                  range: Range<usize>) {
+
+        assert_eq!(wm.min_k(range.clone(), vals.clone(), 10),
+                   value_count(&vec[range.clone()]).iter()
+                       .into_iter()
+                       .filter(|&(val, _)| vals.start <= *val && *val < vals.end)
+                       .take(10)
+                       .map(|k| (*k.0, *k.1))
+                       .collect::<Vec<_>>());
+
+        assert_eq!(wm.max_k(range.clone(), vals.clone(), 10),
+                   value_count(&vec[range.clone()]).iter()
+                       .into_iter()
+                       .filter(|&(val, _)| vals.start <= *val && *val < vals.end)
+                       .rev()
+                       .take(10)
+                       .map(|k| (*k.0, *k.1))
+                       .collect::<Vec<_>>());
+    }
+
     fn random_test(len: usize, val_max: u64) {
         let mut vec: Vec<u64> = Vec::new();
         for _ in 0..len {
@@ -732,6 +764,11 @@ mod tests {
             if i == 0 {
                 search_all(&wm, &vec, val, ignore_bit, range.clone());
                 search_all(&wm, &vec, val + 1, ignore_bit, range.clone());
+
+                let a = random_upto(wm.dim as u64) as u64;
+                let b = random_upto(wm.dim as u64) as u64;
+                let val_range = ::std::cmp::min(a, b)..::std::cmp::max(a, b);
+                test_maxmin_k(&wm, &vec, val_range, range.clone());
             }
         }
     }

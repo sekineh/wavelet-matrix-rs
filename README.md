@@ -54,7 +54,7 @@ fn main() {
     assert_eq!(wm.search(3..wm.len(), 4).collect::<Vec<usize>>(), vec![6]);
     assert_eq!(wm.search(0..wm.len(), 7).collect::<Vec<usize>>(), vec![]);
 
-    // Statistics
+    // Ranking
     assert_eq!(wm.top_k(0..wm.len(), 0..10, 12),
                 vec![(2, 3), (1, 2), (4, 2), (0, 2), (5, 1), (6, 1), (9, 1)]);
     assert_eq!(wm.top_k(0..wm.len(), 0..10, 4),
@@ -101,7 +101,7 @@ Given an unsigned integer sequence A, it provides the following queries.
   - returns the iterator that find indexes of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `A[start..end]`
 - [TODO] implement various conditions other than equal.
 
-### Statistics
+### Ranking
 
 - [EXPERIMENTAL] `.top_k(start..end, val_start..val_end, k)`:
   - list the (value, count) pairs in most-frequent-one-first order.
@@ -109,10 +109,10 @@ Given an unsigned integer sequence A, it provides the following queries.
   - [TODO] implement iterator based on this.
   - [TODO] extensive testing.
   - [TODO] clarify the order of same count.
-- [EXPERIMENTAL] `.max_k(start..end, val_start..val_end, k)`:
+- `.max_k(start..end, val_start..val_end, k)`:
   - list the (value, count) pairs in descending order.
   - values are constrained to the range `val_start..val_end`.
-- [EXPERIMENTAL] `.min_k(start..end, val_start..val_end, k)`:
+- `.min_k(start..end, val_start..val_end, k)`:
   - list the (value, count) pairs in ascending order.
   - values are constrained to the range `val_start..val_end`.
 - Should we implement the above functions using iterator interface?
@@ -125,6 +125,10 @@ Given an unsigned integer sequence A, it provides the following queries.
   - Note: When found nothing, it returns .len() instead of None.
 
 ## Releases
+
+### v0.4.3?
+
+- doc update
 
 ### v0.4.2
 
@@ -145,7 +149,6 @@ Given an unsigned integer sequence A, it provides the following queries.
 
 ### TODO
 
-- Implement .top_n for WaveletMatrix
 - Add Benchmark.
   - Implement same queries using trivial algorithm
   - Compare wm's queries against trivial one.
