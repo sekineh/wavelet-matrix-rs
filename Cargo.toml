@@ -1,6 +1,6 @@
 [package]
 name = "wavelet-matrix"
-version = "0.4.2"
+version = "0.4.3"
 authors = ["SEKINE, Hideki <sekineh@me.com>"]
 description = "A wavelet matrix implementation. Supports various near-O(1) queries on large number of symbols or integers."
 repository = "https://github.com/sekineh/wavelet-matrix-rs"

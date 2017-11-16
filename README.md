@@ -78,7 +78,7 @@ Ranking is performed in roughly O(k), where k is the number of `(value, count)` 
 
 ## Releases
 
-### v0.4.3?
+### v0.4.3
 
 - Add `.bit_len()`.
 - Add `.dim()`.
