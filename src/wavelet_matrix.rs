@@ -109,27 +109,27 @@ impl WaveletMatrix {
         self.bit_len
     }
 
-    /// Returns the number of the element which satisfies `e == value` included in A[pos_range]
+    /// Returns the number of the element which satisfies `e == value` included in T[pos_range]
     pub fn count(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Operator::Equal)
     }
 
-    /// Returns the number of the element which satisfies `e < value` included in A[pos_range]
+    /// Returns the number of the element which satisfies `e < value` included in T[pos_range]
     pub fn count_lt(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Operator::LessThan)
     }
 
-    /// Returns the number of the element which satisfies `e > value` included in A[pos_range]
+    /// Returns the number of the element which satisfies `e > value` included in T[pos_range]
     pub fn count_gt(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Operator::GreaterThan)
     }
 
-    /// Returns the number of the element which satisfies `(e >> ignore_bit) == (val >> ignore_bit)` included in A[pos_range]
+    /// Returns the number of the element which satisfies `(e >> ignore_bit) == (val >> ignore_bit)` included in T[pos_range]
     pub fn count_prefix(&self, pos_range: Range<usize>, value: u64, ignore_bit: u8) -> usize {
         self.prefix_rank_op(pos_range, value, ignore_bit, Operator::Equal)
     }
 
-    /// Returns the number of the element which satisfies `val_range.start <= e < val_range.end` included in A[pos_range]
+    /// Returns the number of the element which satisfies `val_range.start <= e < val_range.end` included in T[pos_range]
     pub fn count_range(&self, pos_range: Range<usize>, val_range: Range<u64>) -> usize {
         self.count_lt(pos_range.clone(), val_range.end) - self.count_lt(pos_range, val_range.start)
     }

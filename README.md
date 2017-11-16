@@ -16,38 +16,44 @@ See crate document top for further examples.
 
 ## Features
 
-Given an unsigned integer sequence A, it provides the following queries.
+Given an unsigned integer sequence T, it provides the following queries.
 
 ### Basic operations
 
 - `.len()`:
-  - returns the length of A.
+  - returns the length of T.
 - `.lookup(pos)`:
-  - returns the value at the position of A, A[pos].
+  - returns the value at the position of T, T[pos].
 
 ### Counting
 
+Counting is performed in O(1).
+
 - `.count(start..end, value)`:
-  - returns the number of the element which satisfies `e == value` included in `A[start..end]`
+  - returns the number of the element which satisfies `e == value` included in `T[start..end]`
 - `.count_prefix(start..end, value, ignore_bit)`:
-  - returns the number of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `A[start..end]`
+  - returns the number of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `T[start..end]`
   - This will be useful for counting the number of IPv4 address that satisfies IPv4 prefix such as `192.168.10.0/24`. In this case, the ignore_bit will be 8.
 - `.count_lt(start..end, value)`:
-  - returns the number of the element which satisfies `e < value` included in `A[start..end]`
+  - returns the number of the element which satisfies `e < value` included in `T[start..end]`
 - `.count_gt(start..end, value)`:
-  - returns the number of the element which satisfies `e > value` included in `A[start..end]`
+  - returns the number of the element which satisfies `e > value` included in `T[start..end]`
 - `.count_range(start..end, val_start..val_end)`:
-  - returns the number of the element which satisfies `val_start <= e < val_end` included in `A[start..end]`
+  - returns the number of the element which satisfies `val_start <= e < val_end` included in `T[start..end]`
 
 ### Searching
 
+Searching is performed in O(1) per a next index.
+
 - `.search(start..end, value)`:
-  - returns the iterator that find indexes of the element which satisfies `e == value` included in `A[start..end]`
+  - returns the iterator that find indexes of the element which satisfies `e == value` included in `T[start..end]`
 - `.search_prefix(start..end, value, ignore_bit)`:
-  - returns the iterator that find indexes of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `A[start..end]`
+  - returns the iterator that find indexes of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `T[start..end]`
 - [TODO] implement various conditions other than equal.
 
 ### Ranking
+
+Ranking is performed in roughly O(k), where k is the number of `(value, count)` tuples.
 
 - `.top_k(start..end, val_start..val_end, k)`:
   - list the (value, count) pairs in most-frequent-one-first order.
@@ -65,7 +71,7 @@ Given an unsigned integer sequence A, it provides the following queries.
 
 ### Classical WaveletMatrix operations
 
-- `.rank(pos, value)`: counts value included in A[0..pos].
+- `.rank(pos, value)`: counts value included in T[0..pos].
   - Note: pos is exclusive. When pos is 0, .rank() always returns 0.
 - `.select(rank, value)`: return the position of the (rank+1)-th value
   - Note: When found nothing, it returns .len() instead of None.
@@ -74,10 +80,11 @@ Given an unsigned integer sequence A, it provides the following queries.
 
 ### v0.4.3?
 
-- Add .bit_len().
-- Add .dim().
+- Add `.bit_len()`.
+- Add `.dim()`.
 - Move examples to crate's document top.
 - Add test for `.top_k()`, `.max_k()` and `min_k()`.
+- Suppress warnings.
 
 ### v0.4.2
 
