@@ -39,7 +39,7 @@
 //! assert_eq!(wm.count_gt(0..wm.len(), 2), 5);
 //! assert_eq!(wm.count_gt(0..wm.len(), 7), 1);
 //!
-//! assert_eq!(wm.count_range(0..wm.len(), 0..10), 12);
+//! assert_eq!(wm.count_range(0..wm.len(), 0..wm.dim()), 12);
 //! assert_eq!(wm.count_range(0..wm.len(), 4..6), 3);
 //!
 //! // Searching
@@ -48,25 +48,25 @@
 //! assert_eq!(wm.search(0..wm.len(), 7).collect::<Vec<usize>>(), vec![]);
 //!
 //! // Ranking: (value, count), frequent values first
-//! assert_eq!(wm.top_k(0..wm.len(), 0..10, 12),
+//! assert_eq!(wm.top_k(0..wm.len(), 0..wm.dim(), 12),
 //!            vec![(2, 3), (1, 2), (4, 2), (0, 2), (5, 1), (6, 1), (9, 1)]);
-//! assert_eq!(wm.top_k(0..wm.len(), 0..10, 4),
+//! assert_eq!(wm.top_k(0..wm.len(), 0..wm.dim(), 4),
 //!            vec![(2, 3), (1, 2), (4, 2), (0, 2)]);
 //! assert_eq!(wm.top_k(0..wm.len(), 2..9, 12),
 //!            vec![(2, 3), (4, 2), (5, 1), (6, 1)]);
 //!
 //! // Ranking: (value, count), max values first
-//! assert_eq!(wm.max_k(0..wm.len(), 0..10, 12),
+//! assert_eq!(wm.max_k(0..wm.len(), 0..wm.dim(), 12),
 //!            vec![(9, 1), (6, 1), (5, 1), (4, 2), (2, 3), (1, 2), (0, 2)]);
-//! assert_eq!(wm.max_k(0..wm.len(), 0..10, 4),
+//! assert_eq!(wm.max_k(0..wm.len(), 0..wm.dim(), 4),
 //!            vec![(9, 1), (6, 1), (5, 1), (4, 2)]);
 //! assert_eq!(wm.max_k(0..wm.len(), 2..9, 12),
 //!            vec![(6, 1), (5, 1), (4, 2), (2, 3)]);
 //!
 //! // Ranking: (value, count), min values first
-//! assert_eq!(wm.min_k(0..wm.len(), 0..10, 12),
+//! assert_eq!(wm.min_k(0..wm.len(), 0..wm.dim(), 12),
 //!            vec![(0, 2), (1, 2), (2, 3), (4, 2), (5, 1), (6, 1), (9, 1)]);
-//! assert_eq!(wm.min_k(0..wm.len(), 0..10, 4),
+//! assert_eq!(wm.min_k(0..wm.len(), 0..wm.dim(), 4),
 //!            vec![(0, 2), (1, 2), (2, 3), (4, 2)]);
 //! assert_eq!(wm.min_k(0..wm.len(), 2..9, 12),
 //!            vec![(2, 3), (4, 2), (5, 1), (6, 1)]);
