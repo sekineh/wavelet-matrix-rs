@@ -1,8 +1,6 @@
-# wavelet-matrix crate for the Rust language
+# Wavelet Matrix for Rust language
 
-The Wavelet Matrix is a space-efficient variant of Wavelet Tree data structure.
-
-- https://en.wikipedia.org/wiki/Wavelet_Tree
+It provides the various analytics on very large sequence of unsigned integers in constant time.
 
 ## Usage
 
@@ -12,61 +10,9 @@ After adding to Cargo.toml, add this line to lib.rs or main.rs.
 extern crate wavelet_matrix;
 ```
 
-## Example
+See crate document top for further examples.
 
-Add to main.rs:
-
-```rust
-use wavelet_matrix::*;
-
-fn main() {
-    let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
-    //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
-    let wm = WaveletMatrix::new(&vec);
-
-    assert_eq!(wm.len(), 12);
-    assert_eq!(wm.lookup(7), 6);
-
-    // Counting
-    assert_eq!(wm.count(0..wm.len(), 2), 3);
-    assert_eq!(wm.count(0..wm.len(), 4), 2);
-    assert_eq!(wm.count(0..wm.len(), 5), 1);
-    assert_eq!(wm.count(0..wm.len(), 7), 0);
-    assert_eq!(wm.count(0..wm.len(), 39), 0);
-
-    assert_eq!(wm.count_prefix(0..wm.len(), 8, 3), 1);
-    assert_eq!(wm.count_prefix(0..wm.len(), 6, 1), 1);
-    assert_eq!(wm.count_prefix(0..wm.len(), 0, 1), 4);
-    assert_eq!(wm.count_prefix(0..wm.len(), 0, 2), 7);
-
-    assert_eq!(wm.count_lt(0..wm.len(), 2), 4);
-    assert_eq!(wm.count_lt(0..wm.len(), 7), 11);
-
-    assert_eq!(wm.count_gt(0..wm.len(), 2), 5);
-    assert_eq!(wm.count_gt(0..wm.len(), 7), 1);
-
-    assert_eq!(wm.count_range(0..wm.len(), 0..10), 12);
-    assert_eq!(wm.count_range(0..wm.len(), 4..6), 3);
-
-    // Searching
-    assert_eq!(wm.search(0..wm.len(), 4).collect::<Vec<usize>>(),
-                vec![2, 6]);
-    assert_eq!(wm.search(3..wm.len(), 4).collect::<Vec<usize>>(), vec![6]);
-    assert_eq!(wm.search(0..wm.len(), 7).collect::<Vec<usize>>(), vec![]);
-
-    // Ranking
-    assert_eq!(wm.top_k(0..wm.len(), 0..10, 12),
-                vec![(2, 3), (1, 2), (4, 2), (0, 2), (5, 1), (6, 1), (9, 1)]);
-    assert_eq!(wm.top_k(0..wm.len(), 0..10, 4),
-                vec![(2, 3), (1, 2), (4, 2), (0, 2)]);
-    assert_eq!(wm.top_k(0..wm.len(), 2..9, 12),
-                vec![(2, 3), (4, 2), (5, 1), (6, 1)]);
-
-    // classic .rank()/.select() API
-    assert_eq!(wm.rank(5, 1), 2);
-    assert_eq!(wm.select(2, 2), 10);
-}
-```
+- https://docs.rs/wavelet-matrix/
 
 ## Features
 
@@ -103,7 +49,7 @@ Given an unsigned integer sequence A, it provides the following queries.
 
 ### Ranking
 
-- [EXPERIMENTAL] `.top_k(start..end, val_start..val_end, k)`:
+- `.top_k(start..end, val_start..val_end, k)`:
   - list the (value, count) pairs in most-frequent-one-first order.
   - values are constrained to the range `val_start..val_end`.
   - [TODO] implement iterator based on this.
@@ -128,7 +74,10 @@ Given an unsigned integer sequence A, it provides the following queries.
 
 ### v0.4.3?
 
-- doc update
+- Add .bit_len().
+- Add .dim().
+- Move examples to crate's document top.
+- Add test for `.top_k()`, `.max_k()` and `min_k()`.
 
 ### v0.4.2
 

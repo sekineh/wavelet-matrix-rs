@@ -104,6 +104,11 @@ impl WaveletMatrix {
         self.dim
     }
 
+    /// Returns the bit length stored internally
+    pub fn bit_len(&self) -> u8 {
+        self.bit_len
+    }
+
     /// Returns the number of the element which satisfies `e == value` included in A[pos_range]
     pub fn count(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Operator::Equal)
