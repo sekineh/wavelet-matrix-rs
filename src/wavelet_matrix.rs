@@ -312,6 +312,48 @@ impl WaveletMatrix {
     fn prefix_code(x: u64, len: u8, bit_num: u8) -> u64 {
         x >> (bit_num - len)
     }
+
+    /// returns the median value from `T[start..end]`.
+    ///
+    /// same as `.quantile(start..end, start + (end - start) / 2)`.
+    pub fn median(&self, pos: Range<usize>) -> u64 {
+        self.quantile(pos.clone(), pos.start + (pos.end - pos.start) / 2)
+    }
+    
+    /// returns the (k+1)th smallest value from `T[start..end]`.
+    pub fn quantile(&self, pos_range: Range<usize>, k: usize) -> u64 {
+        let mut bpos = pos_range.start;
+        let mut epos = pos_range.end;
+        let mut value: u64 = 0;
+        let mut k = k;
+
+        for depth in 0..self.bit_len {
+            let rsd = &self.layers[depth as usize];
+            value = value << 1;
+
+            let zeros_bpos = rsd.rank(bpos, false);
+            let zeros_epos = rsd.rank(epos, false);
+            let zeros_rank = zeros_epos - zeros_bpos;
+
+            if k < zeros_rank {
+                // the value is included in zero's node.
+                // take zero's node in the next loop
+                bpos = zeros_bpos;
+                epos = zeros_epos;
+            } else {
+                // the value is included in one's node.
+                k -= zeros_rank;
+                value |= 1;
+
+                // take one's node in the next loop
+                bpos = (bpos - zeros_bpos) + rsd.zero_num();
+                //     ^^^^^^^^^^^^^^^^^^^ rsd.rank(bpos, true)
+                epos = (epos - zeros_epos) + rsd.zero_num();
+                //     ^^^^^^^^^^^^^^^^^^^ rsd.rank(epos, true)
+            }
+        }
+        value
+    }
 }
 
 fn get_bit_msb(x: u64, pos: u8, blen: u8) -> bool {

@@ -69,6 +69,14 @@ Ranking is performed in roughly O(k), where k is the number of `(value, count)` 
   - values are constrained to the range `val_start..val_end`.
 - Should we implement the above functions using iterator interface?
 
+### Statistics
+
+- [TODO] `.median(start..end)`:
+  - returns the median value from `T[start..end]`.
+  - same as `.quantile(start..end, start + (end - start) / 2)`.
+- [TODO] `.quantile(start..end, k)`:
+  - returns the (k+1)th smallest value from `T[start..end]`.
+
 ### Classical WaveletMatrix operations
 
 - `.rank(pos, value)`: counts value included in T[0..pos].

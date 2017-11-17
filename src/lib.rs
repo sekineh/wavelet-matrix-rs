@@ -70,6 +70,11 @@
 //!            vec![(0, 2), (1, 2), (2, 3), (4, 2)]);
 //! assert_eq!(wm.min_k(0..wm.len(), 2..9, 12),
 //!            vec![(2, 3), (4, 2), (5, 1), (6, 1)]);
+//!
+//! // Statistics
+//! assert_eq!(wm.quantile(0..wm.len(), 0), 0);
+//! assert_eq!(wm.quantile(0..wm.len(), 8), 4);
+//! assert_eq!(wm.quantile(0..wm.len(), 11), 9);
 //! ```
 
 extern crate succinct;
