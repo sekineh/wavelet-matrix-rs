@@ -235,6 +235,12 @@ impl WaveletMatrix {
         self.values::<NodeRangeByFrequency>(pos, val, k)
     }
 
+    /// list the (range, count) pairs in most-frequent-one-first order.
+    /// values are constrained to the range `val_start..val_end`.
+    pub fn top_k_ranges(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(Range<u64>, usize)> {
+        self.value_ranges::<NodeRangeByFrequency>(pos, val, k)
+    }
+
     /// list the (value, count) pairs in descending order.
     /// values are constrained to the range `val_start..val_end`.
     pub fn max_k(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(u64, usize)> {
@@ -272,6 +278,39 @@ impl WaveletMatrix {
                     qons.push(NodeRange::from(&next[i]));
                 }
             }
+        }
+        res
+    }
+
+    fn value_ranges<N>(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(Range<u64>, usize)>
+        where N: NodeRange
+    {
+
+        let mut res = Vec::new();
+
+        if pos.start > self.len() || pos.start >= pos.end {
+            return res;
+        }
+
+        let mut qons: BinaryHeap<N> = BinaryHeap::new();
+
+        qons.push(NodeRange::new(pos, 0, 0));
+
+        while res.len() < k && !qons.is_empty() && qons.len() + res.len() < k {
+            let qon = qons.pop().unwrap();
+            let qon = qon.inner();
+            if qon.depth == self.bit_len {
+                res.push((qon.prefix_char..qon.prefix_char + 1, qon.pos_end - qon.pos_start));
+            } else {
+                let next = self.expand_node(val.clone(), &qon);
+                for i in 0..next.len() {
+                    qons.push(NodeRange::from(&next[i]));
+                }
+            }
+        }
+        while let Some(qon) = qons.pop() {
+            let qon = qon.inner();
+            res.push((qon.prefix_char..qon.prefix_char + 1 << (self.bit_len - qon.depth), qon.pos_end - qon.pos_start));
         }
         res
     }
