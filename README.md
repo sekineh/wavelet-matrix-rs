@@ -55,27 +55,41 @@ Searching is performed in O(1) per a next index.
 
 Ranking is performed in roughly O(k), where k is the number of `(value, count)` tuples.
 
-- `.top_k(start..end, val_start..val_end, k)`:
-  - list the (value, count) pairs in most-frequent-one-first order.
-  - values are constrained to the range `val_start..val_end`.
-  - [TODO] implement iterator based on this.
-  - [TODO] extensive testing.
-  - [TODO] clarify the order of same count.
 - `.max_k(start..end, val_start..val_end, k)`:
   - list the (value, count) pairs in descending order.
   - values are constrained to the range `val_start..val_end`.
 - `.min_k(start..end, val_start..val_end, k)`:
   - list the (value, count) pairs in ascending order.
   - values are constrained to the range `val_start..val_end`.
-- Should we implement the above functions using iterator interface?
+
+`.top_k()` is also performed in O(k) in best case, but may take O(n) in the worst case when every value occurs only once!  For O(k) performance, use `.top_k_range()` instead.
+
+- `.top_k(start..end, val_start..val_end, k)`:
+  - list the (value, count) pairs in most-frequent-one-first order.
+  - values are constrained to the range `val_start..val_end`.
+  - [TODO] clarify the order of same count.
+- [TODO] `.top_k_range(start..end, val_start..val_end, k)`:
+  - list the `(v_start..v_end, count)` pairs in most-frequent-one-first order.
+  - unlike `.top_k()`, `.top_k_range()` returns the exhaustive range set that covers all of the values.
+  - values are constrained to the range `val_start..val_end`.
+  - [TODO] clarify the order of same count.
 
 ### Statistics
 
-- [TODO] `.median(start..end)`:
+- [EXPERIMENTAL] `.median(start..end)`:
   - returns the median value from `T[start..end]`.
   - same as `.quantile(start..end, start + (end - start) / 2)`.
-- [TODO] `.quantile(start..end, k)`:
+- [EXPERIMENTAL] `.quantile(start..end, k)`:
   - returns the (k+1)th smallest value from `T[start..end]`.
+  - O(1)
+- [TODO] `.mean(start..end)`:
+- [TODO] `.mean_fast(start..end)`:
+  - Quickly calculate the average of T[start..end] using the 256 wavelet tree nodes.
+  - It enumerate most relevant nodes in similar way with `.top_k()` function.
+  - The typical error from the precise average value is less than 1% for random values. [TODO: Confirm this.]
+- [TODO] `.mean_fast_raw(start..end, num_of_nodes)`:
+  - Performs `.mean_fast()` with the specified number of nodes.
+
 
 ### Classical WaveletMatrix operations
 
