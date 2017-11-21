@@ -68,7 +68,7 @@ Ranking is performed in roughly O(k), where k is the number of `(value, count)` 
   - list the (value, count) pairs in most-frequent-one-first order.
   - values are constrained to the range `val_start..val_end`.
   - [TODO] clarify the order of same count.
-- [TODO] `.top_k_range(start..end, val_start..val_end, k)`:
+- [EXPERIMENTAL] `.top_k_range(start..end, val_start..val_end, k)`:
   - list the `(v_start..v_end, count)` pairs in most-frequent-one-first order.
   - unlike `.top_k()`, `.top_k_range()` returns the exhaustive range set that covers all of the values.
   - values are constrained to the range `val_start..val_end`.
@@ -84,11 +84,10 @@ Ranking is performed in roughly O(k), where k is the number of `(value, count)` 
   - O(1)
 - [TODO] `.mean(start..end)`:
 - [TODO] `.mean_fast(start..end)`:
-  - Quickly calculate the average of T[start..end] using the 256 wavelet tree nodes.
+- [EXPERIMENTAL] `.mean_raw(start..end, val_start..val_end, num_of_nodes)`:
+  - Quickly calculate the average of T[start..end] using up to k wavelet tree nodes.
   - It enumerate most relevant nodes in similar way with `.top_k()` function.
   - The typical error from the precise average value is less than 1% for random values. [TODO: Confirm this.]
-- [TODO] `.mean_fast_raw(start..end, num_of_nodes)`:
-  - Performs `.mean_fast()` with the specified number of nodes.
 
 
 ### Classical WaveletMatrix operations

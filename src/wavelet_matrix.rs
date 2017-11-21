@@ -248,12 +248,14 @@ impl WaveletMatrix {
     /// assert_eq!(wm.top_k_ranges(0..wm.len(), 0..wm.dim(), 3), vec![(0..4, 7), (4..8, 4), (8..16, 1)]);
     /// //                                                             ^^^^
     /// assert_eq!(wm.top_k_ranges(0..wm.len(), 0..4,        3), vec![(2..4, 3), (1..2, 2), (0..1, 2)]);
-    /// //                                      ^^^^ You can drill down the most frequent range.
+    /// //                                      ^^^^ You can drill down the specified range.
     /// 
     /// assert_eq!(wm.top_k_ranges(0..wm.len(), 0..wm.dim(), 4), vec![(0..2, 4), (4..8, 4), (2..4, 3), (8..16, 1)]);
-    /// //                                                             ^^^^
-    /// assert_eq!(wm.top_k_ranges(0..wm.len(), 0..2,        4), vec![(1..2, 2), (0..1, 2)]);
-    /// //                                      ^^^^ You can drill down the most frequent range.
+    /// //                                                                        ^^^^
+    /// assert_eq!(wm.top_k_ranges(0..wm.len(), 4..8,        4), vec![(4..5, 2), (5..6, 1), (6..7, 1)]);
+    /// //                                      ^^^^ You can drill down the specified range.
+    /// assert_eq!(wm.top_k_ranges(0..wm.len(), 2..9,        4), vec![(2..4, 3), (4..6, 3), (6..8, 1), (8..16, 1)]);
+    /// //                                      ^^^^ You can drill down the specified range.
     /// ```
     pub fn top_k_ranges(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(Range<u64>, usize)> {
         self.value_ranges::<NodeRangeByFrequency>(pos, val, k)
@@ -371,14 +373,71 @@ impl WaveletMatrix {
         x >> (bit_num - len)
     }
 
+    /// Quickly calculate the average of T[start..end] using the k wavelet tree nodes.
+    /// - It enumerate most relevant nodes in similar way with `.top_k()` function.
+    /// - The typical error from the precise average value is less than 1% for random values. [TODO: Confirm this.]
+    /// 
+    /// ```
+    /// use wavelet_matrix::WaveletMatrix;
+    ///
+    /// let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
+    /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
+    /// 
+    /// let wm = WaveletMatrix::new(&vec);
+    /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 1), 8);
+    /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 2), 4);
+    /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 3), 4);
+    /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 4), 4);
+    /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 5), 3); // got the actual average
+    /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 12), 3);
+    /// ```
+    pub fn mean_raw(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> u64 {
+        let ranges = self.top_k_ranges(pos, val, k);
+
+        let sum: u64 = ranges.iter().map(
+            |&(ref r, count)| (r.start + r.end) / 2 * count as u64
+        ).sum();
+        
+        let count: usize = ranges.iter().map(
+            |&(ref r, count)| count
+        ).sum();
+        
+        sum / (count as u64)
+    }
+
     /// returns the median value from `T[start..end]`.
     ///
     /// same as `.quantile(start..end, start + (end - start) / 2)`.
+    /// 
+    /// ```
+    /// use wavelet_matrix::WaveletMatrix;
+    ///
+    /// let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
+    /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
+    /// 
+    /// let wm = WaveletMatrix::new(&vec);
+    /// assert_eq!(wm.median(0..wm.len()), 2);  // median
+    /// assert_eq!(wm.median(6..wm.len()), 4);  // median
+    /// ```
     pub fn median(&self, pos: Range<usize>) -> u64 {
-        self.quantile(pos.clone(), pos.start + (pos.end - pos.start) / 2)
+        self.quantile(pos.clone(), (pos.end - pos.start) / 2)
     }
     
     /// returns the (k+1)th smallest value from `T[start..end]`.
+    /// 
+    /// ```
+    /// use wavelet_matrix::WaveletMatrix;
+    ///
+    /// let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
+    /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
+    /// 
+    /// let wm = WaveletMatrix::new(&vec);
+    /// assert_eq!(wm.quantile(0..wm.len(), 0), 0);  // min
+    /// assert_eq!(wm.quantile(0..wm.len(), 3), 1);
+    /// assert_eq!(wm.quantile(0..wm.len(), 6), 2);  // median
+    /// assert_eq!(wm.quantile(0..wm.len(), 11), 9); // max
+    /// // assert_eq!(wm.quantile(0..wm.len(), 12), 9); // out of range
+    /// ```
     pub fn quantile(&self, pos_range: Range<usize>, k: usize) -> u64 {
         let mut bpos = pos_range.start;
         let mut epos = pos_range.end;
