@@ -237,6 +237,24 @@ impl WaveletMatrix {
 
     /// list the (range, count) pairs in most-frequent-one-first order.
     /// values are constrained to the range `val_start..val_end`.
+    /// 
+    /// ```
+    /// use wavelet_matrix::WaveletMatrix;
+    ///
+    /// let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
+    /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
+    /// 
+    /// let wm = WaveletMatrix::new(&vec);
+    /// assert_eq!(wm.top_k_ranges(0..wm.len(), 0..wm.dim(), 3), vec![(0..4, 7), (4..8, 4), (8..16, 1)]);
+    /// //                                                             ^^^^
+    /// assert_eq!(wm.top_k_ranges(0..wm.len(), 0..4,        3), vec![(2..4, 3), (1..2, 2), (0..1, 2)]);
+    /// //                                      ^^^^ You can drill down the most frequent range.
+    /// 
+    /// assert_eq!(wm.top_k_ranges(0..wm.len(), 0..wm.dim(), 4), vec![(0..2, 4), (4..8, 4), (2..4, 3), (8..16, 1)]);
+    /// //                                                             ^^^^
+    /// assert_eq!(wm.top_k_ranges(0..wm.len(), 0..2,        4), vec![(1..2, 2), (0..1, 2)]);
+    /// //                                      ^^^^ You can drill down the most frequent range.
+    /// ```
     pub fn top_k_ranges(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(Range<u64>, usize)> {
         self.value_ranges::<NodeRangeByFrequency>(pos, val, k)
     }
@@ -310,7 +328,8 @@ impl WaveletMatrix {
         }
         while let Some(qon) = qons.pop() {
             let qon = qon.inner();
-            res.push((qon.prefix_char..qon.prefix_char + 1 << (self.bit_len - qon.depth), qon.pos_end - qon.pos_start));
+            let shift = self.bit_len - qon.depth;
+            res.push((qon.prefix_char << shift..qon.prefix_char + 1 << shift, qon.pos_end - qon.pos_start));
         }
         res
     }
