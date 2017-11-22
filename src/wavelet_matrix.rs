@@ -373,9 +373,50 @@ impl WaveletMatrix {
         x >> (bit_num - len)
     }
 
-    /// Quickly calculate the average of T[start..end] using the k wavelet tree nodes.
-    /// - It enumerate most relevant nodes in similar way with `.top_k()` function.
-    /// - The typical error from the precise average value is less than 1% for random values. [TODO: Confirm this.]
+    /// Approximately calculates the sum of T[start..end] using the k wavelet tree nodes and returns `(sum, count)` tuple.
+    /// 
+    /// It enumerates the top-k most relevant node ranges using `.top_k_ranges()` function.
+    /// The typical error from the precise average value is less than 1% for random values. [TODO: Confirm this.]
+    /// 
+    /// ```
+    /// use wavelet_matrix::WaveletMatrix;
+    ///
+    /// let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
+    /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
+    /// 
+    /// let wm = WaveletMatrix::new(&vec);
+    /// // assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 0), (0, 0)); // useless
+    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 1), (96, 12));
+    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 2), (56, 12));
+    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 3), (50, 12));
+    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 4), (49, 12));
+    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 5), (47, 12));
+    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 6), (45, 12));
+    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 7), (40, 12));
+    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 8), (36, 12)); // got the exact sum
+    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 12), (36, 12));
+    /// 
+    /// assert_eq!(wm.sum_raw(0..wm.len(), 6..7, 12), (6, 1));
+    /// assert_eq!(wm.sum_raw(3..8,        4..7, 12), (15, 3));
+    /// ```
+    pub fn sum_raw(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> (u64, usize) {
+        let ranges = self.top_k_ranges(pos, val, k);
+
+        let sum: u64 = ranges.iter().map(
+            |&(ref r, count)| (r.start + r.end) / 2 * (count as u64)
+        ).sum();
+        
+        let count: usize = ranges.iter().map(
+            |&(ref _r, count)| count
+        ).sum();
+        
+        (sum, count)
+    }
+
+    /// Approximately calculate the average of T[start..end] using the k wavelet tree nodes.
+    /// 
+    /// It enumerates the top-k most relevant node ranges using `.top_k_ranges()` function.
+    /// The typical error from the precise average value is less than 1% for random values. [TODO: Confirm this.]
     /// 
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
@@ -392,16 +433,8 @@ impl WaveletMatrix {
     /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 12), 3);
     /// ```
     pub fn mean_raw(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> u64 {
-        let ranges = self.top_k_ranges(pos, val, k);
+        let (sum, count) = self.sum_raw(pos, val, k);
 
-        let sum: u64 = ranges.iter().map(
-            |&(ref r, count)| (r.start + r.end) / 2 * count as u64
-        ).sum();
-        
-        let count: usize = ranges.iter().map(
-            |&(ref r, count)| count
-        ).sum();
-        
         sum / (count as u64)
     }
 
