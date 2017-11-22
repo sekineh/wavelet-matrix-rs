@@ -418,6 +418,11 @@ impl WaveletMatrix {
     /// let wm = WaveletMatrix::new(&vec);
     /// assert_eq!(wm.median(0..wm.len()), 2);  // median
     /// assert_eq!(wm.median(6..wm.len()), 4);  // median
+    /// 
+    /// // Let's compare with the sorted vector version
+    /// let mut sorted = vec.clone();
+    /// sorted.sort(); // O(n log n)
+    /// assert_eq!(wm.median(0..wm.len()), sorted[wm.len() / 2]);
     /// ```
     pub fn median(&self, pos: Range<usize>) -> u64 {
         self.quantile(pos.clone(), (pos.end - pos.start) / 2)
@@ -437,6 +442,13 @@ impl WaveletMatrix {
     /// assert_eq!(wm.quantile(0..wm.len(), 6), 2);  // median
     /// assert_eq!(wm.quantile(0..wm.len(), 11), 9); // max
     /// // assert_eq!(wm.quantile(0..wm.len(), 12), 9); // out of range
+    /// 
+    /// // Let's compare with the sorted vector
+    /// let mut sorted = vec.clone();
+    /// sorted.sort(); // O(n log n)
+    /// for i in 0..sorted.len() {
+    ///     assert_eq!(wm.quantile(0..wm.len(), i), sorted[i]);
+    /// }
     /// ```
     pub fn quantile(&self, pos_range: Range<usize>, k: usize) -> u64 {
         let mut bpos = pos_range.start;
