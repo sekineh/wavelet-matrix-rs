@@ -21,7 +21,7 @@ pub struct WaveletMatrix {
 }
 
 impl WaveletMatrix {
-    /// Create a new WaveletMatrix struct from a input Vec<u64>.
+    /// Create a new WaveletMatrix struct from a Vec<u64>.
     pub fn new(vals: &Vec<u64>) -> WaveletMatrix {
         let dim = get_dim(&vals);
         let bit_len = get_bit_len(dim);
@@ -73,13 +73,13 @@ impl WaveletMatrix {
         }
     }
 
-    /// Returns the length of T
+    /// Returns the length of `T`
     #[inline]
     pub fn len(&self) -> usize {
         self.num
     }
 
-    /// Returns the value T[pos]
+    /// Returns the value at the position `pos`, i.e. `T[pos]`.
     pub fn lookup(&self, pos: usize) -> u64 {
         let mut val: u64 = 0;
         let mut pos: usize = pos;
@@ -100,46 +100,48 @@ impl WaveletMatrix {
     /// Returns the maximum value + 1.
     ///
     /// Useful to get the upper bound of value range.
+    #[inline]
     pub fn dim(&self) -> u64 {
         self.dim
     }
 
     /// Returns the bit length stored internally
+    #[inline]
     pub fn bit_len(&self) -> u8 {
         self.bit_len
     }
 
-    /// Returns the number of the element which satisfies `e == value` included in T[pos_range]
+    /// Returns the number of the element `e` which satisfies `e == value` included in T[pos_range]
     pub fn count(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Operator::Equal)
     }
 
-    /// Returns the number of the element which satisfies `e < value` included in T[pos_range]
+    /// Returns the number of the element `e` which satisfies `e < value` included in T[pos_range]
     pub fn count_lt(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Operator::LessThan)
     }
 
-    /// Returns the number of the element which satisfies `e > value` included in T[pos_range]
+    /// Returns the number of the element `e` which satisfies `e > value` included in T[pos_range]
     pub fn count_gt(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Operator::GreaterThan)
     }
 
-    /// Returns the number of the element which satisfies `(e >> ignore_bit) == (val >> ignore_bit)` included in T[pos_range]
+    /// Returns the number of the element `e` which satisfies `(e >> ignore_bit) == (value >> ignore_bit)` included in T[pos_range]
     pub fn count_prefix(&self, pos_range: Range<usize>, value: u64, ignore_bit: u8) -> usize {
         self.prefix_rank_op(pos_range, value, ignore_bit, Operator::Equal)
     }
 
-    /// Returns the number of the element which satisfies `val_range.start <= e < val_range.end` included in T[pos_range]
+    /// Returns the number of the element `e` which satisfies `val_range.start <= e < val_range.end` included in T[pos_range]
     pub fn count_range(&self, pos_range: Range<usize>, val_range: Range<u64>) -> usize {
         self.count_lt(pos_range.clone(), val_range.end) - self.count_lt(pos_range, val_range.start)
     }
 
-    /// Returns the iterator that generates indexes that satisfies the condition `e == value`.
+    /// Returns the iterator that generates indices that satisfy the condition `e == value`.
     pub fn search(&self, pos_range: Range<usize>, value: u64) -> WaveletMatrixSearch {
         self.search_prefix(pos_range, value, 0)
     }
 
-    /// Returns the iterator that generates indexes that satisfies the condition `e >> ignore_bit == value >> ignore_bit`.
+    /// Returns the iterator that generates indices that satisfy the condition `e >> ignore_bit == value >> ignore_bit`.
     pub fn search_prefix(&self,
                          pos_range: Range<usize>,
                          value: u64,
@@ -155,16 +157,16 @@ impl WaveletMatrix {
         }
     }
 
-    /// Returns the number of val found in T[0..pos].
+    /// Returns the number of val found in `T[0..pos]`.
     ///
-    /// The range specified is half open, i.e. [0, pos).
-    pub fn rank(&self, pos: usize, val: u64) -> usize {
-        self.prefix_rank_op(0..pos, val, 0, Operator::Equal)
+    /// The range specified is half open, i.e. `[0, pos)`.  When `pos` is 0, the range includes no value.
+    pub fn rank(&self, pos: usize, value: u64) -> usize {
+        self.prefix_rank_op(0..pos, value, 0, Operator::Equal)
     }
 
-    /// .rank() with:
+    /// `.rank()` with:
     /// - range support bpos..epos
-    /// - prefix search support (ignore_bit)
+    /// - prefix search support (`ignore_bit`)
     /// - operator support
     #[inline]
     fn prefix_rank_op(&self,
@@ -183,13 +185,13 @@ impl WaveletMatrix {
                 let bit = get_bit_msb(val, depth, self.bit_len);
                 if bit {
                     if let Operator::LessThan = operator {
-                        rank += rsd.rank(epos, false) - rsd.rank(bpos, false);
+                        rank += rsd.rank(epos, !bit) - rsd.rank(bpos, !bit);
                     }
                     bpos = rsd.rank(bpos, bit) + rsd.zero_num();
                     epos = rsd.rank(epos, bit) + rsd.zero_num();
                 } else {
                     if let Operator::GreaterThan = operator {
-                        rank += rsd.rank(epos, true) - rsd.rank(bpos, true);
+                        rank += rsd.rank(epos, !bit) - rsd.rank(bpos, !bit);
                     }
                     bpos = rsd.rank(bpos, bit);
                     epos = rsd.rank(epos, bit);
@@ -229,63 +231,80 @@ impl WaveletMatrix {
         rsd.select(rank, bit)
     }
 
-    /// list the (value, count) pairs in most-frequent-one-first order.
-    /// values are constrained to the range `val_start..val_end`.
-    pub fn top_k(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(u64, usize)> {
-        self.values::<NodeRangeByFrequency>(pos, val, k)
+    /// list the `(value, count)` pairs in most-frequent-one-first order.
+    /// values are constrained to the `val_range`.
+    pub fn top_k(&self,
+                 pos_range: Range<usize>,
+                 val_range: Range<u64>,
+                 k: usize)
+                 -> Vec<(u64, usize)> {
+        self.values::<NodeRangeByFrequency>(pos_range, val_range, k)
     }
 
-    /// list the (range, count) pairs in most-frequent-one-first order.
-    /// values are constrained to the range `val_start..val_end`.
-    /// 
+    /// list the `(range, count)` pairs in most-frequent-one-first order.
+    /// values are constrained to the `val_range`.
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
     /// let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
     /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
-    /// 
+    ///
     /// let wm = WaveletMatrix::new(&vec);
     /// assert_eq!(wm.top_k_ranges(0..wm.len(), 0..wm.dim(), 3), vec![(0..4, 7), (4..8, 4), (8..16, 1)]);
-    /// //                                                             ^^^^
+    /// // You can drill down into any specific range.
     /// assert_eq!(wm.top_k_ranges(0..wm.len(), 0..4,        3), vec![(2..4, 3), (1..2, 2), (0..1, 2)]);
-    /// //                                      ^^^^ You can drill down the specified range.
-    /// 
+    ///
     /// assert_eq!(wm.top_k_ranges(0..wm.len(), 0..wm.dim(), 4), vec![(0..2, 4), (4..8, 4), (2..4, 3), (8..16, 1)]);
-    /// //                                                                        ^^^^
+    /// // You can drill down into any specific range.
     /// assert_eq!(wm.top_k_ranges(0..wm.len(), 4..8,        4), vec![(4..5, 2), (5..6, 1), (6..7, 1)]);
-    /// //                                      ^^^^ You can drill down the specified range.
     /// assert_eq!(wm.top_k_ranges(0..wm.len(), 2..9,        4), vec![(2..4, 3), (4..6, 3), (6..8, 1), (8..16, 1)]);
-    /// //                                      ^^^^ You can drill down the specified range.
     /// ```
-    pub fn top_k_ranges(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(Range<u64>, usize)> {
-        self.value_ranges::<NodeRangeByFrequency>(pos, val, k)
+    pub fn top_k_ranges(&self,
+                        pos_range: Range<usize>,
+                        val_range: Range<u64>,
+                        k: usize)
+                        -> Vec<(Range<u64>, usize)> {
+        self.value_ranges::<NodeRangeByFrequency>(pos_range, val_range, k)
     }
 
-    /// list the (value, count) pairs in descending order.
-    /// values are constrained to the range `val_start..val_end`.
-    pub fn max_k(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(u64, usize)> {
-        self.values::<NodeRangeDescending>(pos, val, k)
+    /// list the `(value, count)` pairs in descending order.
+    /// values are constrained to the `val_range`.
+    pub fn max_k(&self,
+                 pos_range: Range<usize>,
+                 val_range: Range<u64>,
+                 k: usize)
+                 -> Vec<(u64, usize)> {
+        self.values::<NodeRangeDescending>(pos_range, val_range, k)
     }
 
-    /// list the (value, count) pairs in ascending order.
-    /// values are constrained to the range `val_start..val_end`.
-    pub fn min_k(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(u64, usize)> {
-        self.values::<NodeRangeAscending>(pos, val, k)
+    /// list the `(value, count)` pairs in ascending order.
+    /// values are constrained to the `val_range`.
+    pub fn min_k(&self,
+                 pos_range: Range<usize>,
+                 val_range: Range<u64>,
+                 k: usize)
+                 -> Vec<(u64, usize)> {
+        self.values::<NodeRangeAscending>(pos_range, val_range, k)
     }
 
-    fn values<N>(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(u64, usize)>
+    fn values<N>(&self,
+                 pos_range: Range<usize>,
+                 val_range: Range<u64>,
+                 k: usize)
+                 -> Vec<(u64, usize)>
         where N: NodeRange
     {
 
         let mut res = Vec::new();
 
-        if pos.start > self.len() || pos.start >= pos.end {
+        if pos_range.start > self.len() || pos_range.start >= pos_range.end {
             return res;
         }
 
         let mut qons: BinaryHeap<N> = BinaryHeap::new();
 
-        qons.push(NodeRange::new(pos, 0, 0));
+        qons.push(NodeRange::new(pos_range, 0, 0));
 
         while res.len() < k && !qons.is_empty() {
             let qon = qons.pop().unwrap();
@@ -293,7 +312,7 @@ impl WaveletMatrix {
             if qon.depth == self.bit_len {
                 res.push((qon.prefix_char, qon.pos_end - qon.pos_start));
             } else {
-                let next = self.expand_node(val.clone(), &qon);
+                let next = self.expand_node(val_range.clone(), &qon);
                 for i in 0..next.len() {
                     qons.push(NodeRange::from(&next[i]));
                 }
@@ -302,19 +321,23 @@ impl WaveletMatrix {
         res
     }
 
-    fn value_ranges<N>(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> Vec<(Range<u64>, usize)>
+    fn value_ranges<N>(&self,
+                       pos_range: Range<usize>,
+                       val_range: Range<u64>,
+                       k: usize)
+                       -> Vec<(Range<u64>, usize)>
         where N: NodeRange
     {
 
         let mut res = Vec::new();
 
-        if pos.start > self.len() || pos.start >= pos.end {
-            return res;
+        if pos_range.start > self.len() || pos_range.start >= pos_range.end {
+            return res; // return the empty vector
         }
 
         let mut qons: BinaryHeap<N> = BinaryHeap::new();
 
-        qons.push(NodeRange::new(pos, 0, 0));
+        qons.push(NodeRange::new(pos_range, 0, 0));
 
         while res.len() < k && !qons.is_empty() && qons.len() + res.len() < k {
             let qon = qons.pop().unwrap();
@@ -322,7 +345,7 @@ impl WaveletMatrix {
             if qon.depth == self.bit_len {
                 res.push((qon.prefix_char..qon.prefix_char + 1, qon.pos_end - qon.pos_start));
             } else {
-                let next = self.expand_node(val.clone(), &qon);
+                let next = self.expand_node(val_range.clone(), &qon);
                 for i in 0..next.len() {
                     qons.push(NodeRange::from(&next[i]));
                 }
@@ -331,12 +354,13 @@ impl WaveletMatrix {
         while let Some(qon) = qons.pop() {
             let qon = qon.inner();
             let shift = self.bit_len - qon.depth;
-            res.push((qon.prefix_char << shift..qon.prefix_char + 1 << shift, qon.pos_end - qon.pos_start));
+            res.push((qon.prefix_char << shift..qon.prefix_char + 1 << shift,
+                      qon.pos_end - qon.pos_start));
         }
         res
     }
 
-    fn expand_node(&self, val: Range<u64>, qon: &QueryOnNode) -> Vec<QueryOnNode> {
+    fn expand_node(&self, val_range: Range<u64>, qon: &QueryOnNode) -> Vec<QueryOnNode> {
         let ba = &self.layers[qon.depth as usize];
         let mut next = Vec::new();
 
@@ -350,40 +374,41 @@ impl WaveletMatrix {
         if epos_zero > bpos_zero {
             // child for zero
             let next_prefix = qon.prefix_char << 1;
-            if self.check_prefix(next_prefix, qon.depth + 1, val.clone()) {
+            if self.check_prefix(next_prefix, qon.depth + 1, val_range.clone()) {
                 next.push(QueryOnNode::new(bpos_zero..epos_zero, qon.depth + 1, next_prefix));
             }
         }
         if epos_one > bpos_one {
             // child for one
             let next_prefix = (qon.prefix_char << 1) + 1;
-            if self.check_prefix(next_prefix, qon.depth + 1, val) {
+            if self.check_prefix(next_prefix, qon.depth + 1, val_range) {
                 next.push(QueryOnNode::new(bpos_one..epos_one, qon.depth + 1, next_prefix));
             }
         }
         next
     }
 
-    fn check_prefix(&self, prefix: u64, depth: u8, val: Range<u64>) -> bool {
-        Self::prefix_code(val.start, depth, self.bit_len) <= prefix &&
-        prefix <= Self::prefix_code(val.end - 1, depth, self.bit_len)
+    fn check_prefix(&self, prefix: u64, depth: u8, val_range: Range<u64>) -> bool {
+        Self::prefix_code(val_range.start, depth, self.bit_len) <= prefix &&
+        prefix <= Self::prefix_code(val_range.end - 1, depth, self.bit_len)
     }
 
     fn prefix_code(x: u64, len: u8, bit_num: u8) -> u64 {
         x >> (bit_num - len)
     }
 
-    /// Approximately calculates the sum of T[start..end] using the k wavelet tree nodes and returns `(sum, count)` tuple.
-    /// 
+    /// Approximately calculates the sum of `T[pos_range]` using up to k wavelet tree nodes and
+    /// returns `(sum of value, sum of count)` tuple.
+    ///
     /// It enumerates the top-k most relevant node ranges using `.top_k_ranges()` function.
-    /// The typical error from the precise average value is less than 1% for random values. [TODO: Confirm this.]
-    /// 
+    /// To get the exact result, specfy k = m + 1 where m is the number of values which are unique.
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
     /// let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
     /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
-    /// 
+    ///
     /// let wm = WaveletMatrix::new(&vec);
     /// // assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 0), (0, 0)); // useless
     /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 1), (96, 12));
@@ -395,35 +420,42 @@ impl WaveletMatrix {
     /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 7), (40, 12));
     /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 8), (36, 12)); // got the exact sum
     /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 12), (36, 12));
-    /// 
+    ///
     /// assert_eq!(wm.sum_raw(0..wm.len(), 6..7, 12), (6, 1));
     /// assert_eq!(wm.sum_raw(3..8,        4..7, 12), (15, 3));
     /// ```
-    pub fn sum_raw(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> (u64, usize) {
-        let ranges = self.top_k_ranges(pos, val, k);
+    pub fn sum_raw(&self,
+                   pos_range: Range<usize>,
+                   val_range: Range<u64>,
+                   k: usize)
+                   -> (u64, usize) {
+        let ranges = self.top_k_ranges(pos_range, val_range, k);
 
-        let sum: u64 = ranges.iter().map(
-            |&(ref r, count)| (r.start + r.end) / 2 * (count as u64)
-        ).sum();
-        
-        let count: usize = ranges.iter().map(
-            |&(ref _r, count)| count
-        ).sum();
-        
+        let sum: u64 = ranges.iter()
+            .map(|&(ref r, count)| {
+                (r.start + r.end) / 2 // expected value 
+                * (count as u64)
+            })
+            .sum();
+
+        let count: usize = ranges.iter()
+            .map(|&(ref _r, count)| count)
+            .sum();
+
         (sum, count)
     }
 
-    /// Approximately calculate the average of T[start..end] using the k wavelet tree nodes.
-    /// 
+    /// Approximately calculates the average of `T[pos_range]` using up to k wavelet tree nodes.
+    ///
     /// It enumerates the top-k most relevant node ranges using `.top_k_ranges()` function.
-    /// The typical error from the precise average value is less than 1% for random values. [TODO: Confirm this.]
-    /// 
+    /// To get the exact result, specfy k = m + 1 where m is the number of values which are unique.
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
     /// let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
     /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
-    /// 
+    ///
     /// let wm = WaveletMatrix::new(&vec);
     /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 1), 8);
     /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 2), 4);
@@ -432,50 +464,50 @@ impl WaveletMatrix {
     /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 5), 3); // got the actual average
     /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 12), 3);
     /// ```
-    pub fn mean_raw(&self, pos: Range<usize>, val: Range<u64>, k: usize) -> u64 {
-        let (sum, count) = self.sum_raw(pos, val, k);
+    pub fn mean_raw(&self, pos_range: Range<usize>, val_range: Range<u64>, k: usize) -> u64 {
+        let (sum, count) = self.sum_raw(pos_range, val_range, k);
 
         sum / (count as u64)
     }
 
-    /// returns the median value from `T[start..end]`.
+    /// returns the median value from ``T[pos_range]``.
     ///
     /// same as `.quantile(start..end, start + (end - start) / 2)`.
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
     /// let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
     /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
-    /// 
+    ///
     /// let wm = WaveletMatrix::new(&vec);
     /// assert_eq!(wm.median(0..wm.len()), 2);  // median
     /// assert_eq!(wm.median(6..wm.len()), 4);  // median
-    /// 
+    ///
     /// // Let's compare with the sorted vector version
     /// let mut sorted = vec.clone();
     /// sorted.sort(); // O(n log n)
     /// assert_eq!(wm.median(0..wm.len()), sorted[wm.len() / 2]);
     /// ```
-    pub fn median(&self, pos: Range<usize>) -> u64 {
-        self.quantile(pos.clone(), (pos.end - pos.start) / 2)
+    pub fn median(&self, pos_range: Range<usize>) -> u64 {
+        self.quantile(pos_range.clone(), (pos_range.end - pos_range.start) / 2)
     }
-    
-    /// returns the (k+1)th smallest value from `T[start..end]`.
-    /// 
+
+    /// Returns the (k+1)th smallest value from `T[pos_range]`.
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
     /// let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
     /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
-    /// 
+    ///
     /// let wm = WaveletMatrix::new(&vec);
     /// assert_eq!(wm.quantile(0..wm.len(), 0), 0);  // min
     /// assert_eq!(wm.quantile(0..wm.len(), 3), 1);
     /// assert_eq!(wm.quantile(0..wm.len(), 6), 2);  // median
     /// assert_eq!(wm.quantile(0..wm.len(), 11), 9); // max
     /// // assert_eq!(wm.quantile(0..wm.len(), 12), 9); // out of range
-    /// 
+    ///
     /// // Let's compare with the sorted vector
     /// let mut sorted = vec.clone();
     /// sorted.sort(); // O(n log n)
@@ -547,10 +579,10 @@ struct QueryOnNode {
 }
 
 impl QueryOnNode {
-    fn new(pos: Range<usize>, depth: u8, prefix_char: u64) -> Self {
+    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64) -> Self {
         QueryOnNode {
-            pos_start: pos.start,
-            pos_end: pos.end,
+            pos_start: pos_range.start,
+            pos_end: pos_range.end,
             depth: depth,
             prefix_char: prefix_char,
         }
@@ -574,7 +606,7 @@ impl Ord for QueryOnNode {
 
 /// Comparator trait
 trait NodeRange: Ord {
-    fn new(pos: Range<usize>, depth: u8, prefix_char: u64) -> Self;
+    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64) -> Self;
     fn inner(&self) -> &QueryOnNode;
     fn from(qon: &QueryOnNode) -> Self;
 }
@@ -584,8 +616,8 @@ trait NodeRange: Ord {
 struct NodeRangeByFrequency(QueryOnNode);
 
 impl NodeRange for NodeRangeByFrequency {
-    fn new(pos: Range<usize>, depth: u8, prefix_char: u64) -> Self {
-        NodeRangeByFrequency(QueryOnNode::new(pos, depth, prefix_char))
+    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64) -> Self {
+        NodeRangeByFrequency(QueryOnNode::new(pos_range, depth, prefix_char))
     }
     fn inner(&self) -> &QueryOnNode {
         &self.0
@@ -618,8 +650,8 @@ impl PartialEq for NodeRangeByFrequency {
 struct NodeRangeDescending(QueryOnNode);
 
 impl NodeRange for NodeRangeDescending {
-    fn new(pos: Range<usize>, depth: u8, prefix_char: u64) -> Self {
-        NodeRangeDescending(QueryOnNode::new(pos, depth, prefix_char))
+    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64) -> Self {
+        NodeRangeDescending(QueryOnNode::new(pos_range, depth, prefix_char))
     }
     fn inner(&self) -> &QueryOnNode {
         &self.0
@@ -652,8 +684,8 @@ impl PartialEq for NodeRangeDescending {
 struct NodeRangeAscending(QueryOnNode);
 
 impl NodeRange for NodeRangeAscending {
-    fn new(pos: Range<usize>, depth: u8, prefix_char: u64) -> Self {
-        NodeRangeAscending(QueryOnNode::new(pos, depth, prefix_char))
+    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64) -> Self {
+        NodeRangeAscending(QueryOnNode::new(pos_range, depth, prefix_char))
     }
     fn inner(&self) -> &QueryOnNode {
         &self.0
@@ -928,7 +960,11 @@ mod tests {
     }
 
     use self::itertools::Itertools;
-    fn test_ranking(wm: &WaveletMatrix, vec: &Vec<u64>, vals: Range<u64>, range: Range<usize>, len: usize) {
+    fn test_ranking(wm: &WaveletMatrix,
+                    vec: &Vec<u64>,
+                    vals: Range<u64>,
+                    range: Range<usize>,
+                    len: usize) {
 
         assert_eq!(wm.min_k(range.clone(), vals.clone(), len),
                    value_count(&vec[range.clone()]).iter()
