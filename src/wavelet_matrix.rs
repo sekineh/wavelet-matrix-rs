@@ -401,8 +401,13 @@ impl WaveletMatrix {
     /// returns `(sum of value, sum of count)` tuple.
     ///
     /// It enumerates the top-k most relevant node ranges using `.top_k_ranges()` function.
+    /// 
     /// To get the exact result, specfy k = m + 1 where m is the number of values which are unique.
+    /// E.g. If you have 7 unique values in the sequence T, specify k = 8 to get the exact result.
     ///
+    /// For calculation, this method uses u64 for summing. 
+    /// To avoid overflow during calculation, we recommend to use this function for < 32 bits values assuming the number of elements is ~ 32 bits.
+    /// 
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -448,8 +453,13 @@ impl WaveletMatrix {
     /// Approximately calculates the average of `T[pos_range]` using up to k wavelet tree nodes.
     ///
     /// It enumerates the top-k most relevant node ranges using `.top_k_ranges()` function.
+    /// 
     /// To get the exact result, specfy k = m + 1 where m is the number of values which are unique.
-    ///
+    /// E.g. If you have 256 unique values in the sequence T, specify k = 257 to get the exact result.
+    /// 
+    /// For calculation, this method uses u64 for summing. 
+    /// To avoid overflow during calculation, we recommend to use this function for < 32 bits values assuming the number of elements is ~ 32 bits.
+    /// 
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -468,6 +478,60 @@ impl WaveletMatrix {
         let (sum, count) = self.sum_raw(pos_range, val_range, k);
 
         sum / (count as u64)
+    }
+
+    /// Approximately calculates the variance of `T[pos_range]` using up to k wavelet tree nodes.
+    ///
+    /// It enumerates the top-k most relevant node ranges using `.top_k_ranges()` function.
+    /// 
+    /// To get the exact result, specfy k = m + 1 where m is the number of values which are unique.
+    /// E.g. If you have 256 unique values in the sequence T, specify k = 257 to get the exact result.
+    ///
+    /// For calculation, this method uses u64 for summing. 
+    /// To avoid overflow during calculation, we recommend to use this function for < 16 bits values assuming the number of elements is ~ 32 bits.
+    /// 
+    /// ```
+    /// use wavelet_matrix::WaveletMatrix;
+    ///
+    /// let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
+    /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
+    ///
+    /// let wm = WaveletMatrix::new(&vec);
+    /// let mean = wm.mean_raw(0..wm.len(), 0..wm.dim(), 8);
+    /// assert_eq!(mean, 3); // got the actual average
+    /// assert_eq!(wm.variance_raw(0..wm.len(), 0..wm.dim(), 8), 6);
+    /// assert_eq!(vec.iter()
+    ///               .map(|&v| {
+    ///                   let diff = if v > mean {v - mean} else {mean - v};
+    ///                   diff * diff
+    ///               })
+    ///               .sum::<u64>() / (vec.len() as u64), 6);
+    /// ```
+    pub fn variance_raw(&self, pos_range: Range<usize>, val_range: Range<u64>, k: usize) -> u64 {
+        let ranges = self.top_k_ranges(pos_range, val_range, k);
+
+        let sum: u64 = ranges.iter()
+            .map(|&(ref r, count)| {
+                (r.start + r.end) / 2 // expected value 
+                * (count as u64)
+            })
+            .sum();
+
+        let count: usize = ranges.iter()
+            .map(|&(ref _r, count)| count)
+            .sum();
+        
+        let mean = sum / count as u64;
+
+        let variance: u64 = ranges.iter()
+            .map(|&(ref r, count)| {
+                let expected = (r.start + r.end) / 2;
+                let diff = if expected > mean {expected - mean} else {mean - expected};
+                diff * diff * (count as u64)
+            })
+            .sum::<u64>() / count as u64;
+        
+        variance
     }
 
     /// returns the median value from ``T[pos_range]``.
@@ -536,7 +600,7 @@ impl WaveletMatrix {
                 epos = zeros_epos;
             } else {
                 // the value is included in one's node.
-                k -= zeros_rank;
+                k -= zeros_rank; // the count of zeros are consumed
                 value |= 1;
 
                 // take one's node in the next loop
@@ -1039,8 +1103,8 @@ mod tests {
 
     #[test]
     fn layers_64() {
-        random_test(1024, -1i64 as u64);
-        random_test(1023, -1i64 as u64);
+        random_test(1024, ::std::u64::MAX - 1);
+        random_test(1023, ::std::u64::MAX - 1);
     }
     #[test]
     fn layers_7() {
