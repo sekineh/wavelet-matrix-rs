@@ -21,81 +21,98 @@ Given an unsigned integer sequence T, it provides the following queries.
 ### Basic operations
 
 - `.len()`:
-  - returns the length of T.
+  - Returns the length of `T`.
+  - It's almost no overhead, just returning the stored value.
 - `.lookup(pos)`:
-  - returns the value at the position of T, T[pos].
+  - Returns the value at the position of T, `T[pos]`.
+  - It's slower than array lookup but still is O(1). You might want to save the original Vector for faster lookup.
 
 ### Counting
 
 Counting is performed in O(1).
 
 - `.count(start..end, value)`:
-  - returns the number of the element which satisfies `e == value` included in `T[start..end]`
+  - Returns the number of the element `e` which satisfies `e == value` included in `T[start..end]`
 - `.count_prefix(start..end, value, ignore_bit)`:
-  - returns the number of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `T[start..end]`
+  - Returns the number of the element `e` which satisfies `e >> ignore_bit == value >> ignore_bit` included in `T[start..end]`
   - This will be useful for counting the number of IPv4 address that satisfies IPv4 prefix such as `192.168.10.0/24`. In this case, the ignore_bit will be 8.
 - `.count_lt(start..end, value)`:
-  - returns the number of the element which satisfies `e < value` included in `T[start..end]`
+  - Returns the number of the element `e` which satisfies `e < value` included in `T[start..end]`
 - `.count_gt(start..end, value)`:
-  - returns the number of the element which satisfies `e > value` included in `T[start..end]`
+  - Returns the number of the element `e` which satisfies `e > value` included in `T[start..end]`
 - `.count_range(start..end, val_start..val_end)`:
-  - returns the number of the element which satisfies `val_start <= e < val_end` included in `T[start..end]`
+  - Returns the number of the element `e` which satisfies `val_start <= e < val_end` included in `T[start..end]`
 
 ### Searching
 
 Searching is performed in O(1) per a next index.
 
 - `.search(start..end, value)`:
-  - returns the iterator that find indexes of the element which satisfies `e == value` included in `T[start..end]`
+  - Returns the iterator that find indexes of the element `e` which satisfies `e == value` included in `T[start..end]`
 - `.search_prefix(start..end, value, ignore_bit)`:
-  - returns the iterator that find indexes of the element which satisfies `e >> ignore_bit == value >> ignore_bit` included in `T[start..end]`
+  - Returns the iterator that find indexes of the element `e` which satisfies `e >> ignore_bit == value >> ignore_bit` included in `T[start..end]`
 - [TODO] implement various conditions other than equal.
 
 ### Ranking
 
-Ranking is performed in roughly O(k), where k is the number of `(value, count)` tuples.
+Ranking is performed in roughly O(1) with regard to the number of elements `n`.
 
 - `.max_k(start..end, val_start..val_end, k)`:
-  - list the (value, count) pairs in descending order.
+  - list the `(value, count)` pairs in descending order.
   - values are constrained to the range `val_start..val_end`.
 - `.min_k(start..end, val_start..val_end, k)`:
-  - list the (value, count) pairs in ascending order.
+  - list the `(value, count)` pairs in ascending order.
   - values are constrained to the range `val_start..val_end`.
 
-`.top_k()` is also performed in O(k) in best case, but may take O(n) in the worst case when every value occurs only once!  For O(k) performance, use `.top_k_range()` instead.
+`.top_k()` is also performed in O(1) in best case, but may take O(n) in the worst case where every value occurs only once!
 
 - `.top_k(start..end, val_start..val_end, k)`:
-  - list the (value, count) pairs in most-frequent-one-first order.
+  - list the `(value, count)` pairs in most-frequent-one-first order.
   - values are constrained to the range `val_start..val_end`.
   - [TODO] clarify the order of same count.
-- [EXPERIMENTAL] `.top_k_range(start..end, val_start..val_end, k)`:
+
+To achieve O(1) performance regardless of the number of unique values, use `.top_k_ranges()` instead:
+
+- [EXPERIMENTAL] `.top_k_ranges(start..end, val_start..val_end, k)`:
   - list the `(v_start..v_end, count)` pairs in most-frequent-one-first order.
-  - unlike `.top_k()`, `.top_k_range()` returns the exhaustive range set that covers all of the values.
+  - unlike `.top_k()`, `.top_k_ranges()` returns the exhaustive range set that covers all of the values.
   - values are constrained to the range `val_start..val_end`.
   - [TODO] clarify the order of same count.
 
 ### Statistics
 
+#### O(1) Median / O(1) Quantile
+
 - [EXPERIMENTAL] `.median(start..end)`:
-  - returns the median value from `T[start..end]`.
+  - Returns the median value from `T[start..end]`.
   - same as `.quantile(start..end, start + (end - start) / 2)`.
 - [EXPERIMENTAL] `.quantile(start..end, k)`:
-  - returns the (k+1)th smallest value from `T[start..end]`.
-  - O(1)
-- [TODO] `.mean(start..end)`:
-- [TODO] `.mean_fast(start..end)`:
-- [EXPERIMENTAL] `.mean_raw(start..end, val_start..val_end, num_of_nodes)`:
-  - Quickly calculate the average of T[start..end] using up to k wavelet tree nodes.
-  - It enumerate most relevant nodes in similar way with `.top_k()` function.
-  - The typical error from the precise average value is less than 1% for random values. [TODO: Confirm this.]
+  - Returns the (k+1)th smallest value from `T[start..end]`.
 
+#### O(1) Sum / O(1) Average / O(1) Variance
+
+- [EXPERIMENTAL] `.sum_raw(start..end, val_start..val_end, k)`:
+  - Approximately calculate the sum of `T[start..end]` using up to `k` wavelet tree nodes.
+  - The values are filtered to `val_start..val_end`.
+  - It enumerates most relevant value ranges using `.top_k_ranges()` function.
+  - To get the exact result, specify `k = m + 1` where `m` is the number of values which are unique.
+- [EXPERIMENTAL] `.mean_raw(start..end, val_start..val_end, k)`:
+  - Approximately calculate the average of `T[start..end]` using up to `k` wavelet tree nodes.
+  - The values are filtered to `val_start..val_end`.
+  - It enumerates most relevant value ranges using `.top_k_ranges()` function.
+  - To get the exact result, specify `k = m + 1` where `m` is the number of values which are unique.
+- [EXPERIMENTAL] `.variance_raw(start..end, val_start..val_end, k)`:
+  - Approximately calculate the variance of `T[start..end]` using up to `k` wavelet tree nodes.
+  - The values are filtered to `val_start..val_end`.
+  - It enumerates most relevant value ranges using `.top_k_ranges()` function.
+  - To get the exact result, specify `k = m + 1` where `m` is the number of values which are unique.
 
 ### Classical WaveletMatrix operations
 
-- `.rank(pos, value)`: counts value included in T[0..pos].
-  - Note: pos is exclusive. When pos is 0, .rank() always returns 0.
+- `.rank(pos, value)`: counts value included in `T[0..pos]`.
+  - Note: pos is exclusive. When pos is 0, `.rank()` always returns 0.
 - `.select(rank, value)`: return the position of the (rank+1)-th value
-  - Note: When found nothing, it returns .len() instead of None.
+  - Note: When found nothing, it returns `.len()` instead of None.
 
 ## Releases
 
