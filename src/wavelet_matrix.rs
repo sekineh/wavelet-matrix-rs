@@ -375,14 +375,14 @@ impl WaveletMatrix {
             // child for zero
             let next_prefix = qon.prefix_char << 1;
             if self.check_prefix(next_prefix, qon.depth + 1, val_range.clone()) {
-                next.push(QueryOnNode::new(bpos_zero..epos_zero, qon.depth + 1, next_prefix, self.bit_len()));
+                next.push(QueryOnNode::new(bpos_zero..epos_zero, next_prefix, qon.depth + 1, self.bit_len()));
             }
         }
         if epos_one > bpos_one {
             // child for one
             let next_prefix = (qon.prefix_char << 1) + 1;
             if self.check_prefix(next_prefix, qon.depth + 1, val_range) {
-                next.push(QueryOnNode::new(bpos_one..epos_one, qon.depth + 1, next_prefix, self.bit_len()));
+                next.push(QueryOnNode::new(bpos_one..epos_one, next_prefix, qon.depth + 1, self.bit_len()));
             }
         }
         next
@@ -684,18 +684,18 @@ impl SpaceUsage for WaveletMatrix {
 struct QueryOnNode {
     pos_start: usize,
     pos_end: usize,
-    depth: u8,
     prefix_char: u64,
+    depth: u8,
     bit_len: u8,
 }
 
 impl QueryOnNode {
-    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
+    fn new(pos_range: Range<usize>, prefix_char: u64, depth: u8, bit_len: u8) -> Self {
         QueryOnNode {
             pos_start: pos_range.start,
             pos_end: pos_range.end,
-            depth: depth,
             prefix_char: prefix_char,
+            depth: depth,
             bit_len: bit_len,
         }
     }
@@ -745,7 +745,7 @@ struct NodeRangeByFrequency(QueryOnNode);
 
 impl NodeRange for NodeRangeByFrequency {
     fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
-        NodeRangeByFrequency(QueryOnNode::new(pos_range, depth, prefix_char, bit_len))
+        NodeRangeByFrequency(QueryOnNode::new(pos_range, prefix_char, depth, bit_len))
     }
     fn inner(&self) -> &QueryOnNode {
         &self.0
@@ -779,7 +779,7 @@ struct NodeRangeBySumError(QueryOnNode);
 
 impl NodeRange for NodeRangeBySumError {
     fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
-        NodeRangeBySumError(QueryOnNode::new(pos_range, depth, prefix_char, bit_len))
+        NodeRangeBySumError(QueryOnNode::new(pos_range, prefix_char, depth, bit_len))
     }
     fn inner(&self) -> &QueryOnNode {
         &self.0
@@ -813,7 +813,7 @@ struct NodeRangeDescending(QueryOnNode);
 
 impl NodeRange for NodeRangeDescending {
     fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
-        NodeRangeDescending(QueryOnNode::new(pos_range, depth, prefix_char, bit_len))
+        NodeRangeDescending(QueryOnNode::new(pos_range, prefix_char, depth, bit_len))
     }
     fn inner(&self) -> &QueryOnNode {
         &self.0
@@ -847,7 +847,7 @@ struct NodeRangeAscending(QueryOnNode);
 
 impl NodeRange for NodeRangeAscending {
     fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
-        NodeRangeAscending(QueryOnNode::new(pos_range, depth, prefix_char, bit_len))
+        NodeRangeAscending(QueryOnNode::new(pos_range, prefix_char, depth, bit_len))
     }
     fn inner(&self) -> &QueryOnNode {
         &self.0
