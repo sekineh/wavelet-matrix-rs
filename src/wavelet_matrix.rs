@@ -496,6 +496,57 @@ impl WaveletMatrix {
         (sum, count)
     }
 
+    /// Improved version of `.sum_experiment2()`.
+    ///
+    /// It returns `Range<u64>` value to tell how accurate the computed value is.
+    /// 
+    /// ```
+    /// use wavelet_matrix::WaveletMatrix;
+    ///
+    /// let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
+    /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
+    ///
+    /// let wm = WaveletMatrix::new(&vec);
+    /// // assert_eq!(wm.sum_experimen3(0..wm.len(), 0..wm.dim(), 0), (0, 0)); // useless
+    /// assert_eq!(wm.sum_experiment3(0..wm.len(), 0..wm.dim(), 1), (0..181, 12)); // 181 / 2 = 90
+    /// assert_eq!(wm.sum_experiment3(0..wm.len(), 0..wm.dim(), 2), (8..93, 12)); // 101 / 2 = 50
+    /// assert_eq!(wm.sum_experiment3(0..wm.len(), 0..wm.dim(), 3), (24..65, 12)); // 89 / 2 = 44
+    /// assert_eq!(wm.sum_experiment3(0..wm.len(), 0..wm.dim(), 4), (30..57, 12)); // 87 / 2 = 43
+    /// assert_eq!(wm.sum_experiment3(0..wm.len(), 0..wm.dim(), 5), (32..51, 12)); // 83 / 2 = 41
+    /// assert_eq!(wm.sum_experiment3(0..wm.len(), 0..wm.dim(), 6), (34..45, 12)); // 79 / 2 = 38
+    /// assert_eq!(wm.sum_experiment3(0..wm.len(), 0..wm.dim(), 7), (35..40, 12)); // 75 / 2 = 37
+    /// assert_eq!(wm.sum_experiment3(0..wm.len(), 0..wm.dim(), 8), (36..37, 12)); // got the exact sum = 36
+    /// assert_eq!(wm.sum_experiment3(0..wm.len(), 0..wm.dim(), 12), (36..37, 12));
+    ///
+    /// assert_eq!(wm.sum_experiment3(0..wm.len(), 6..7, 12), (6..7, 1));
+    /// assert_eq!(wm.sum_experiment3(3..8,        4..7, 12), (15..16, 3));
+    /// ```
+    pub fn sum_experiment3(&self,
+                   pos_range: Range<usize>,
+                   val_range: Range<u64>,
+                   k: usize)
+                   -> (Range<u64>, usize) {
+        let ranges = self.value_ranges::<NodeRangeBySumError>(pos_range, val_range, k);
+
+        let sum_min: u64 = ranges.iter()
+            .map(|&(ref r, count)| {
+                r.start * (count as u64)
+            })
+            .sum();
+
+        let sum_max: u64 = ranges.iter()
+            .map(|&(ref r, count)| {
+                (r.end - 1) * (count as u64)
+            })
+            .sum();
+
+        let count: usize = ranges.iter()
+            .map(|&(ref _r, count)| count)
+            .sum();
+
+        (sum_min..sum_max + 1, count)
+    }
+
     /// Approximately calculates the average of `T[pos_range]` using up to k wavelet tree nodes.
     ///
     /// It enumerates the top-k most relevant node ranges using `.top_k_ranges()` function.

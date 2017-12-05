@@ -115,6 +115,14 @@ These methods use `.top_k_ranges()` for node enumeration.  They are not very acc
 
 Improvement over Experiment 1.  They use custom node enumerator to minimize the error.
 
+- [EXPERIMENTAL] `.sum_experiment2(start..end, val_start..val_end, k)`:
+
+##### Experiment 3
+
+Improvement over Experiment 2.  They return `Range<u64>` to tell how accurate the computed value is.
+
+- [EXPERIMENTAL] `.sum_experiment3(start..end, val_start..val_end, k)`:
+
 ### Classical WaveletMatrix operations
 
 - `.rank(pos, value)`: counts value included in `T[0..pos]`.
