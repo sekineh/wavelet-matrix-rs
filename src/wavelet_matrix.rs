@@ -304,7 +304,7 @@ impl WaveletMatrix {
 
         let mut qons: BinaryHeap<N> = BinaryHeap::new();
 
-        qons.push(NodeRange::new(pos_range, 0, 0));
+        qons.push(NodeRange::new(pos_range, 0, 0, self.bit_len()));
 
         while res.len() < k && !qons.is_empty() {
             let qon = qons.pop().unwrap();
@@ -337,7 +337,7 @@ impl WaveletMatrix {
 
         let mut qons: BinaryHeap<N> = BinaryHeap::new();
 
-        qons.push(NodeRange::new(pos_range, 0, 0));
+        qons.push(NodeRange::new(pos_range, 0, 0, self.bit_len()));
 
         while res.len() < k && !qons.is_empty() && qons.len() + res.len() < k {
             let qon = qons.pop().unwrap();
@@ -375,14 +375,14 @@ impl WaveletMatrix {
             // child for zero
             let next_prefix = qon.prefix_char << 1;
             if self.check_prefix(next_prefix, qon.depth + 1, val_range.clone()) {
-                next.push(QueryOnNode::new(bpos_zero..epos_zero, qon.depth + 1, next_prefix));
+                next.push(QueryOnNode::new(bpos_zero..epos_zero, qon.depth + 1, next_prefix, self.bit_len()));
             }
         }
         if epos_one > bpos_one {
             // child for one
             let next_prefix = (qon.prefix_char << 1) + 1;
             if self.check_prefix(next_prefix, qon.depth + 1, val_range) {
-                next.push(QueryOnNode::new(bpos_one..epos_one, qon.depth + 1, next_prefix));
+                next.push(QueryOnNode::new(bpos_one..epos_one, qon.depth + 1, next_prefix, self.bit_len()));
             }
         }
         next
@@ -415,26 +415,72 @@ impl WaveletMatrix {
     /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
     ///
     /// let wm = WaveletMatrix::new(&vec);
-    /// // assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 0), (0, 0)); // useless
-    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 1), (96, 12));
-    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 2), (56, 12));
-    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 3), (50, 12));
-    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 4), (49, 12));
-    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 5), (47, 12));
-    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 6), (45, 12));
-    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 7), (40, 12));
-    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 8), (36, 12)); // got the exact sum
-    /// assert_eq!(wm.sum_raw(0..wm.len(), 0..wm.dim(), 12), (36, 12));
+    /// // assert_eq!(wm.sum_experiment1(0..wm.len(), 0..wm.dim(), 0), (0, 0)); // useless
+    /// assert_eq!(wm.sum_experiment1(0..wm.len(), 0..wm.dim(), 1), (96, 12));
+    /// assert_eq!(wm.sum_experiment1(0..wm.len(), 0..wm.dim(), 2), (56, 12));
+    /// assert_eq!(wm.sum_experiment1(0..wm.len(), 0..wm.dim(), 3), (50, 12));
+    /// assert_eq!(wm.sum_experiment1(0..wm.len(), 0..wm.dim(), 4), (49, 12));
+    /// assert_eq!(wm.sum_experiment1(0..wm.len(), 0..wm.dim(), 5), (47, 12));
+    /// assert_eq!(wm.sum_experiment1(0..wm.len(), 0..wm.dim(), 6), (45, 12));
+    /// assert_eq!(wm.sum_experiment1(0..wm.len(), 0..wm.dim(), 7), (40, 12));
+    /// assert_eq!(wm.sum_experiment1(0..wm.len(), 0..wm.dim(), 8), (36, 12)); // got the exact sum
+    /// assert_eq!(wm.sum_experiment1(0..wm.len(), 0..wm.dim(), 12), (36, 12));
     ///
-    /// assert_eq!(wm.sum_raw(0..wm.len(), 6..7, 12), (6, 1));
-    /// assert_eq!(wm.sum_raw(3..8,        4..7, 12), (15, 3));
+    /// assert_eq!(wm.sum_experiment1(0..wm.len(), 6..7, 12), (6, 1));
+    /// assert_eq!(wm.sum_experiment1(3..8,        4..7, 12), (15, 3));
     /// ```
-    pub fn sum_raw(&self,
+    pub fn sum_experiment1(&self,
                    pos_range: Range<usize>,
                    val_range: Range<u64>,
                    k: usize)
                    -> (u64, usize) {
         let ranges = self.top_k_ranges(pos_range, val_range, k);
+
+        let sum: u64 = ranges.iter()
+            .map(|&(ref r, count)| {
+                (r.start + r.end) / 2 // expected value 
+                * (count as u64)
+            })
+            .sum();
+
+        let count: usize = ranges.iter()
+            .map(|&(ref _r, count)| count)
+            .sum();
+
+        (sum, count)
+    }
+
+    /// Improved version of `.sum_experiment1()`.
+    ///
+    /// It enumerates the top-k most relevant node ranges using custom node expander instead of `.top_k_ranges()`.
+    /// 
+    /// ```
+    /// use wavelet_matrix::WaveletMatrix;
+    ///
+    /// let vec: Vec<u64> = vec![1, 2, 4, 5, 1, 0, 4, 6, 2, 9, 2, 0];
+    /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
+    ///
+    /// let wm = WaveletMatrix::new(&vec);
+    /// // assert_eq!(wm.sum_experiment2(0..wm.len(), 0..wm.dim(), 0), (0, 0)); // useless
+    /// assert_eq!(wm.sum_experiment2(0..wm.len(), 0..wm.dim(), 1), (96, 12));
+    /// assert_eq!(wm.sum_experiment2(0..wm.len(), 0..wm.dim(), 2), (56, 12));
+    /// assert_eq!(wm.sum_experiment2(0..wm.len(), 0..wm.dim(), 3), (50, 12));
+    /// assert_eq!(wm.sum_experiment2(0..wm.len(), 0..wm.dim(), 4), (49, 12));
+    /// assert_eq!(wm.sum_experiment2(0..wm.len(), 0..wm.dim(), 5), (47, 12));
+    /// assert_eq!(wm.sum_experiment2(0..wm.len(), 0..wm.dim(), 6), (43, 12)); // improved since experiment 1 (45->43)
+    /// assert_eq!(wm.sum_experiment2(0..wm.len(), 0..wm.dim(), 7), (38, 12)); // improved since experiment 1 (40->38)
+    /// assert_eq!(wm.sum_experiment2(0..wm.len(), 0..wm.dim(), 8), (36, 12)); // got the exact sum
+    /// assert_eq!(wm.sum_experiment2(0..wm.len(), 0..wm.dim(), 12), (36, 12));
+    ///
+    /// assert_eq!(wm.sum_experiment2(0..wm.len(), 6..7, 12), (6, 1));
+    /// assert_eq!(wm.sum_experiment2(3..8,        4..7, 12), (15, 3));
+    /// ```
+    pub fn sum_experiment2(&self,
+                   pos_range: Range<usize>,
+                   val_range: Range<u64>,
+                   k: usize)
+                   -> (u64, usize) {
+        let ranges = self.value_ranges::<NodeRangeBySumError>(pos_range, val_range, k);
 
         let sum: u64 = ranges.iter()
             .map(|&(ref r, count)| {
@@ -467,15 +513,15 @@ impl WaveletMatrix {
     /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
     ///
     /// let wm = WaveletMatrix::new(&vec);
-    /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 1), 8);
-    /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 2), 4);
-    /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 3), 4);
-    /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 4), 4);
-    /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 5), 3); // got the actual average
-    /// assert_eq!(wm.mean_raw(0..wm.len(), 0..wm.dim(), 12), 3);
+    /// assert_eq!(wm.mean_experiment1(0..wm.len(), 0..wm.dim(), 1), 8);
+    /// assert_eq!(wm.mean_experiment1(0..wm.len(), 0..wm.dim(), 2), 4);
+    /// assert_eq!(wm.mean_experiment1(0..wm.len(), 0..wm.dim(), 3), 4);
+    /// assert_eq!(wm.mean_experiment1(0..wm.len(), 0..wm.dim(), 4), 4);
+    /// assert_eq!(wm.mean_experiment1(0..wm.len(), 0..wm.dim(), 5), 3); // got the actual average
+    /// assert_eq!(wm.mean_experiment1(0..wm.len(), 0..wm.dim(), 12), 3);
     /// ```
-    pub fn mean_raw(&self, pos_range: Range<usize>, val_range: Range<u64>, k: usize) -> u64 {
-        let (sum, count) = self.sum_raw(pos_range, val_range, k);
+    pub fn mean_experiment1(&self, pos_range: Range<usize>, val_range: Range<u64>, k: usize) -> u64 {
+        let (sum, count) = self.sum_experiment1(pos_range, val_range, k);
 
         sum / (count as u64)
     }
@@ -497,9 +543,9 @@ impl WaveletMatrix {
     /// //                       0  1  2  3  4  5  6  7  8  9 10 11 (length = 12)
     ///
     /// let wm = WaveletMatrix::new(&vec);
-    /// let mean = wm.mean_raw(0..wm.len(), 0..wm.dim(), 8);
+    /// let mean = wm.mean_experiment1(0..wm.len(), 0..wm.dim(), 8);
     /// assert_eq!(mean, 3); // got the actual average
-    /// assert_eq!(wm.variance_raw(0..wm.len(), 0..wm.dim(), 8), 6);
+    /// assert_eq!(wm.variance_experiment1(0..wm.len(), 0..wm.dim(), 8), 6);
     /// assert_eq!(vec.iter()
     ///               .map(|&v| {
     ///                   let diff = if v > mean {v - mean} else {mean - v};
@@ -507,7 +553,7 @@ impl WaveletMatrix {
     ///               })
     ///               .sum::<u64>() / (vec.len() as u64), 6);
     /// ```
-    pub fn variance_raw(&self, pos_range: Range<usize>, val_range: Range<u64>, k: usize) -> u64 {
+    pub fn variance_experiment1(&self, pos_range: Range<usize>, val_range: Range<u64>, k: usize) -> u64 {
         let ranges = self.top_k_ranges(pos_range, val_range, k);
 
         let sum: u64 = ranges.iter()
@@ -640,19 +686,37 @@ struct QueryOnNode {
     pos_end: usize,
     depth: u8,
     prefix_char: u64,
+    bit_len: u8,
 }
 
 impl QueryOnNode {
-    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64) -> Self {
+    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
         QueryOnNode {
             pos_start: pos_range.start,
             pos_end: pos_range.end,
             depth: depth,
             prefix_char: prefix_char,
+            bit_len: bit_len,
         }
     }
+    #[inline]
     fn count(&self) -> usize {
         self.pos_end - self.pos_start
+    }
+    #[inline]
+    fn value_range(&self) -> Range<u64> {
+        let shift = self.bit_len - self.depth;
+        self.prefix_char << shift .. (self.prefix_char + 1) << shift
+    }
+    #[inline]
+    fn sum_error(&self) -> u64 {
+        let vr = self.value_range();
+        (vr.end - vr.start - 1) * (self.count() as u64)
+    }
+    #[inline]
+    fn sum_expected(&self) -> u64 {
+        let vr = self.value_range();
+        (vr.end + vr.start) / 2 * (self.count() as u64)
     }
 }
 
@@ -670,7 +734,7 @@ impl Ord for QueryOnNode {
 
 /// Comparator trait
 trait NodeRange: Ord {
-    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64) -> Self;
+    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self;
     fn inner(&self) -> &QueryOnNode;
     fn from(qon: &QueryOnNode) -> Self;
 }
@@ -680,8 +744,8 @@ trait NodeRange: Ord {
 struct NodeRangeByFrequency(QueryOnNode);
 
 impl NodeRange for NodeRangeByFrequency {
-    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64) -> Self {
-        NodeRangeByFrequency(QueryOnNode::new(pos_range, depth, prefix_char))
+    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
+        NodeRangeByFrequency(QueryOnNode::new(pos_range, depth, prefix_char, bit_len))
     }
     fn inner(&self) -> &QueryOnNode {
         &self.0
@@ -693,7 +757,7 @@ impl NodeRange for NodeRangeByFrequency {
 
 impl Ord for NodeRangeByFrequency {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0)
+        self.inner().cmp(&other.inner())
     }
 }
 
@@ -709,13 +773,47 @@ impl PartialEq for NodeRangeByFrequency {
     }
 }
 
+/// QueryOnNode orderd by frequency
+#[derive(Debug, Clone, Eq)]
+struct NodeRangeBySumError(QueryOnNode);
+
+impl NodeRange for NodeRangeBySumError {
+    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
+        NodeRangeBySumError(QueryOnNode::new(pos_range, depth, prefix_char, bit_len))
+    }
+    fn inner(&self) -> &QueryOnNode {
+        &self.0
+    }
+    fn from(qon: &QueryOnNode) -> Self {
+        NodeRangeBySumError(qon.clone())
+    }
+}
+
+impl Ord for NodeRangeBySumError {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.sum_error().cmp(&other.0.sum_error())
+    }
+}
+
+impl PartialOrd for NodeRangeBySumError {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
+impl PartialEq for NodeRangeBySumError {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
 /// QueryOnNode in Descending order
 #[derive(Debug, Clone, Eq)]
 struct NodeRangeDescending(QueryOnNode);
 
 impl NodeRange for NodeRangeDescending {
-    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64) -> Self {
-        NodeRangeDescending(QueryOnNode::new(pos_range, depth, prefix_char))
+    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
+        NodeRangeDescending(QueryOnNode::new(pos_range, depth, prefix_char, bit_len))
     }
     fn inner(&self) -> &QueryOnNode {
         &self.0
@@ -748,8 +846,8 @@ impl PartialEq for NodeRangeDescending {
 struct NodeRangeAscending(QueryOnNode);
 
 impl NodeRange for NodeRangeAscending {
-    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64) -> Self {
-        NodeRangeAscending(QueryOnNode::new(pos_range, depth, prefix_char))
+    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
+        NodeRangeAscending(QueryOnNode::new(pos_range, depth, prefix_char, bit_len))
     }
     fn inner(&self) -> &QueryOnNode {
         &self.0

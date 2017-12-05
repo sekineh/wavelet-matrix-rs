@@ -91,21 +91,29 @@ To achieve O(1) performance regardless of the number of unique values, use `.top
 
 #### O(1) Sum / O(1) Average / O(1) Variance
 
-- [EXPERIMENTAL] `.sum_raw(start..end, val_start..val_end, k)`:
+##### Experiment 1
+
+These methods use `.top_k_ranges()` for node enumeration.  They are not very accurate on some cases.
+
+- [EXPERIMENTAL] `.sum_experiment1(start..end, val_start..val_end, k)`:
   - Approximately calculate the sum of `T[start..end]` using up to `k` wavelet tree nodes.
   - The values are filtered to `val_start..val_end`.
   - It enumerates most relevant value ranges using `.top_k_ranges()` function.
   - To get the exact result, specify `k = m + 1` where `m` is the number of values which are unique.
-- [EXPERIMENTAL] `.mean_raw(start..end, val_start..val_end, k)`:
+- [EXPERIMENTAL] `.mean_experiment1(start..end, val_start..val_end, k)`:
   - Approximately calculate the average of `T[start..end]` using up to `k` wavelet tree nodes.
   - The values are filtered to `val_start..val_end`.
   - It enumerates most relevant value ranges using `.top_k_ranges()` function.
   - To get the exact result, specify `k = m + 1` where `m` is the number of values which are unique.
-- [EXPERIMENTAL] `.variance_raw(start..end, val_start..val_end, k)`:
+- [EXPERIMENTAL] `.variance_experiment1(start..end, val_start..val_end, k)`:
   - Approximately calculate the variance of `T[start..end]` using up to `k` wavelet tree nodes.
   - The values are filtered to `val_start..val_end`.
   - It enumerates most relevant value ranges using `.top_k_ranges()` function.
   - To get the exact result, specify `k = m + 1` where `m` is the number of values which are unique.
+
+##### Experiment 2
+
+Improvement over Experiment 1.  They use custom node enumerator to minimize the error.
 
 ### Classical WaveletMatrix operations
 
