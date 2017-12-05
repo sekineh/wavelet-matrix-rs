@@ -375,14 +375,20 @@ impl WaveletMatrix {
             // child for zero
             let next_prefix = qon.prefix_char << 1;
             if self.check_prefix(next_prefix, qon.depth + 1, val_range.clone()) {
-                next.push(QueryOnNode::new(bpos_zero..epos_zero, next_prefix, qon.depth + 1, self.bit_len()));
+                next.push(QueryOnNode::new(bpos_zero..epos_zero,
+                                           next_prefix,
+                                           qon.depth + 1,
+                                           self.bit_len()));
             }
         }
         if epos_one > bpos_one {
             // child for one
             let next_prefix = (qon.prefix_char << 1) + 1;
             if self.check_prefix(next_prefix, qon.depth + 1, val_range) {
-                next.push(QueryOnNode::new(bpos_one..epos_one, next_prefix, qon.depth + 1, self.bit_len()));
+                next.push(QueryOnNode::new(bpos_one..epos_one,
+                                           next_prefix,
+                                           qon.depth + 1,
+                                           self.bit_len()));
             }
         }
         next
@@ -401,13 +407,13 @@ impl WaveletMatrix {
     /// returns `(sum of value, sum of count)` tuple.
     ///
     /// It enumerates the top-k most relevant node ranges using `.top_k_ranges()` function.
-    /// 
+    ///
     /// To get the exact result, specfy k = m + 1 where m is the number of values which are unique.
     /// E.g. If you have 7 unique values in the sequence T, specify k = 8 to get the exact result.
     ///
-    /// For calculation, this method uses u64 for summing. 
+    /// For calculation, this method uses u64 for summing.
     /// To avoid overflow during calculation, we recommend to use this function for < 32 bits values assuming the number of elements is ~ 32 bits.
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -430,10 +436,10 @@ impl WaveletMatrix {
     /// assert_eq!(wm.sum_experiment1(3..8,        4..7, 12), (15, 3));
     /// ```
     pub fn sum_experiment1(&self,
-                   pos_range: Range<usize>,
-                   val_range: Range<u64>,
-                   k: usize)
-                   -> (u64, usize) {
+                           pos_range: Range<usize>,
+                           val_range: Range<u64>,
+                           k: usize)
+                           -> (u64, usize) {
         let ranges = self.top_k_ranges(pos_range, val_range, k);
 
         let sum: u64 = ranges.iter()
@@ -453,7 +459,7 @@ impl WaveletMatrix {
     /// Improved version of `.sum_experiment1()`.
     ///
     /// It enumerates the top-k most relevant node ranges using custom node expander instead of `.top_k_ranges()`.
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -476,10 +482,10 @@ impl WaveletMatrix {
     /// assert_eq!(wm.sum_experiment2(3..8,        4..7, 12), (15, 3));
     /// ```
     pub fn sum_experiment2(&self,
-                   pos_range: Range<usize>,
-                   val_range: Range<u64>,
-                   k: usize)
-                   -> (u64, usize) {
+                           pos_range: Range<usize>,
+                           val_range: Range<u64>,
+                           k: usize)
+                           -> (u64, usize) {
         let ranges = self.value_ranges::<NodeRangeBySumError>(pos_range, val_range, k);
 
         let sum: u64 = ranges.iter()
@@ -499,7 +505,7 @@ impl WaveletMatrix {
     /// Improved version of `.sum_experiment2()`.
     ///
     /// It returns `Range<u64>` value to tell how accurate the computed value is.
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -522,22 +528,18 @@ impl WaveletMatrix {
     /// assert_eq!(wm.sum_experiment3(3..8,        4..7, 12), (15..16, 3));
     /// ```
     pub fn sum_experiment3(&self,
-                   pos_range: Range<usize>,
-                   val_range: Range<u64>,
-                   k: usize)
-                   -> (Range<u64>, usize) {
+                           pos_range: Range<usize>,
+                           val_range: Range<u64>,
+                           k: usize)
+                           -> (Range<u64>, usize) {
         let ranges = self.value_ranges::<NodeRangeBySumError>(pos_range, val_range, k);
 
         let sum_min: u64 = ranges.iter()
-            .map(|&(ref r, count)| {
-                r.start * (count as u64)
-            })
+            .map(|&(ref r, count)| r.start * (count as u64))
             .sum();
 
         let sum_max: u64 = ranges.iter()
-            .map(|&(ref r, count)| {
-                (r.end - 1) * (count as u64)
-            })
+            .map(|&(ref r, count)| (r.end - 1) * (count as u64))
             .sum();
 
         let count: usize = ranges.iter()
@@ -550,13 +552,13 @@ impl WaveletMatrix {
     /// Approximately calculates the average of `T[pos_range]` using up to k wavelet tree nodes.
     ///
     /// It enumerates the top-k most relevant node ranges using `.top_k_ranges()` function.
-    /// 
+    ///
     /// To get the exact result, specfy k = m + 1 where m is the number of values which are unique.
     /// E.g. If you have 256 unique values in the sequence T, specify k = 257 to get the exact result.
-    /// 
-    /// For calculation, this method uses u64 for summing. 
+    ///
+    /// For calculation, this method uses u64 for summing.
     /// To avoid overflow during calculation, we recommend to use this function for < 32 bits values assuming the number of elements is ~ 32 bits.
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -571,7 +573,11 @@ impl WaveletMatrix {
     /// assert_eq!(wm.mean_experiment1(0..wm.len(), 0..wm.dim(), 5), 3); // got the actual average
     /// assert_eq!(wm.mean_experiment1(0..wm.len(), 0..wm.dim(), 12), 3);
     /// ```
-    pub fn mean_experiment1(&self, pos_range: Range<usize>, val_range: Range<u64>, k: usize) -> u64 {
+    pub fn mean_experiment1(&self,
+                            pos_range: Range<usize>,
+                            val_range: Range<u64>,
+                            k: usize)
+                            -> u64 {
         let (sum, count) = self.sum_experiment1(pos_range, val_range, k);
 
         sum / (count as u64)
@@ -580,13 +586,13 @@ impl WaveletMatrix {
     /// Approximately calculates the variance of `T[pos_range]` using up to k wavelet tree nodes.
     ///
     /// It enumerates the top-k most relevant node ranges using `.top_k_ranges()` function.
-    /// 
+    ///
     /// To get the exact result, specfy k = m + 1 where m is the number of values which are unique.
     /// E.g. If you have 256 unique values in the sequence T, specify k = 257 to get the exact result.
     ///
-    /// For calculation, this method uses u64 for summing. 
+    /// For calculation, this method uses u64 for summing.
     /// To avoid overflow during calculation, we recommend to use this function for < 16 bits values assuming the number of elements is ~ 32 bits.
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -604,7 +610,11 @@ impl WaveletMatrix {
     ///               })
     ///               .sum::<u64>() / (vec.len() as u64), 6);
     /// ```
-    pub fn variance_experiment1(&self, pos_range: Range<usize>, val_range: Range<u64>, k: usize) -> u64 {
+    pub fn variance_experiment1(&self,
+                                pos_range: Range<usize>,
+                                val_range: Range<u64>,
+                                k: usize)
+                                -> u64 {
         let ranges = self.top_k_ranges(pos_range, val_range, k);
 
         let sum: u64 = ranges.iter()
@@ -617,17 +627,21 @@ impl WaveletMatrix {
         let count: usize = ranges.iter()
             .map(|&(ref _r, count)| count)
             .sum();
-        
+
         let mean = sum / count as u64;
 
         let variance: u64 = ranges.iter()
             .map(|&(ref r, count)| {
                 let expected = (r.start + r.end) / 2;
-                let diff = if expected > mean {expected - mean} else {mean - expected};
+                let diff = if expected > mean {
+                    expected - mean
+                } else {
+                    mean - expected
+                };
                 diff * diff * (count as u64)
             })
             .sum::<u64>() / count as u64;
-        
+
         variance
     }
 
@@ -757,7 +771,7 @@ impl QueryOnNode {
     #[inline]
     fn value_range(&self) -> Range<u64> {
         let shift = self.bit_len - self.depth;
-        self.prefix_char << shift .. (self.prefix_char + 1) << shift
+        self.prefix_char << shift..(self.prefix_char + 1) << shift
     }
     #[inline]
     fn sum_error(&self) -> u64 {

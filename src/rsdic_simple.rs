@@ -12,11 +12,9 @@ pub struct RsDic {
 
 impl Debug for RsDic {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(
-            f,
-            "RsDic: {{ bit_len(): {} }}",
-            self.select_support.inner().inner().bit_len()
-        )
+        write!(f,
+               "RsDic: {{ bit_len(): {} }}",
+               self.select_support.inner().inner().bit_len())
     }
 }
 
@@ -68,9 +66,7 @@ pub struct RsDicBuilder {
 
 impl RsDicBuilder {
     pub fn new() -> Self {
-        RsDicBuilder {
-            bv: BitVector::new(),
-        }
+        RsDicBuilder { bv: BitVector::new() }
     }
     pub fn push_bit(&mut self, bit: bool) {
         self.bv.push_bit(bit);
@@ -78,9 +74,7 @@ impl RsDicBuilder {
     pub fn build(self) -> RsDic {
         let rank = JacobsonRank::new(self.bv);
         let select = BinSearchSelect::new(rank);
-        RsDic {
-            select_support: select,
-        }
+        RsDic { select_support: select }
     }
 }
 
