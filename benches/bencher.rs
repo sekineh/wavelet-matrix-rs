@@ -20,8 +20,6 @@ fn new_helper(b: &mut Bencher, num: usize, upper: u64, bytes_per_elem: u64) {
         .collect::<Vec<_>>();
 
     b.iter(|| WaveletMatrix::new(&vec));
-
-    b.bytes = bytes_per_elem * num as u64;
 }
 
 /// bench new() with various bit length
@@ -68,25 +66,50 @@ mod new_by_N {
         new_helper(b, 100000, std::u16::MAX as u64, 2)
     }
 
-    #[bench]
+    // #[bench]
     fn new_16bit_1000000(b: &mut Bencher) {
         new_helper(b, 1000000, std::u16::MAX as u64, 2)
     }
 }
 
-// benchmark_group!(
-//     new_for_different_sizes,
-//     new_8bitx10000,
-//     new_16bitx10000,
-//     new_32bitx10000,
-//     new_64bitx10000
-// );
+use rand::Rng;
 
-// benchmark_group!(
-//     new_for_different_nums,
-//     new_32bitx1000,
-//     new_32bitx10000,
-//     new_32bitx100000
-// );
+fn lookup_helper(b: &mut Bencher, num: usize, upper: u64, bytes_per_elem: u64) {
+    let mut rng = rand::weak_rng();
+    let range = rand::distributions::Range::new(0, upper);
+    let vec: Vec<u64> = std::iter::repeat(0)
+        .take(num)
+        .map(|_| range.ind_sample(&mut rng) as u64)
+        .collect::<Vec<_>>();
 
-// benchmark_main!(new_for_different_sizes, new_for_different_nums);
+    let wm = WaveletMatrix::new(&vec);
+
+    b.iter(|| {
+        let idx = rng.next_u64() as usize % num;
+        assert_eq!(wm.lookup(idx), vec[idx]); // vec[idx] is negrigible
+    });
+}
+
+mod lookup {
+    use ::*;
+
+    #[bench]
+    fn lookup_32bits____10000(b: &mut Bencher) {
+        lookup_helper(b, 10000, std::u32::MAX as u64, 4);
+    }
+
+    #[bench]
+    fn lookup_32bits_10000000(b: &mut Bencher) {
+        lookup_helper(b, 10000000, std::u32::MAX as u64, 4);
+    }
+
+    #[bench]
+    fn lookup_64bits____10000(b: &mut Bencher) {
+        lookup_helper(b, 10000, std::u64::MAX as u64, 8);
+    }
+
+    #[bench]
+    fn lookup_64bits_10000000(b: &mut Bencher) {
+        lookup_helper(b, 10000000, std::u64::MAX as u64, 8);
+    }
+}
