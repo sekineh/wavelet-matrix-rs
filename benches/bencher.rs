@@ -70,7 +70,7 @@ mod new_by_N {
 
     #[bench]
     fn new_16bit_1000000(b: &mut Bencher) {
-        new_helper(b, 100000, std::u16::MAX as u64, 2)
+        new_helper(b, 1000000, std::u16::MAX as u64, 2)
     }
 }
 
