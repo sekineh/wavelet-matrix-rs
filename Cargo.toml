@@ -18,7 +18,7 @@ num = "0.1.40"
 itertools = "0.7.2"
 # criterion = "0.1.0"
 # bencher = "0.1.4"
-easybench = "0.1.3"
+easybench = { git = "https://github.com/sekineh/easybench-rs" }
 
 [[bench]]
 name = "easybench"
