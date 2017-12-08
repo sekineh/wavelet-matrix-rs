@@ -19,33 +19,45 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
     println!("");
     println!("```");
 
+    use std::time::*;
+    let time_start = Instant::now();
     let wm = WaveletMatrix::new(&vec);
+    let dur = time_start.elapsed();
+    let dur_ns = dur.as_secs() as f64 * 1e9 + dur.subsec_nanos() as f64;
     println!(
-        "{:>24}, N = {}, {}: {}",
+        "{:>24}, N = {}, {}: {:>10} ns   (only 1 iteration)",
         "WaveletMatrix::new()",
         num,
         desc,
-        bench_limit(|| WaveletMatrix::new(&vec), limit_secs)
+        dur_ns,
     );
     println!(
         "{:>24}, N = {}, {}: {}",
-        ".lookup()",
+        ".lookup(rand)",
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            // let idx = rng.next_u64() as usize % num;
-            let idx = rng.gen_range(0, num); // slightly slower than the above :-(
+            let idx = rng.gen_range(0, num);
             wm.lookup(idx)
         })
     );
     println!(
         "{:>24}, N = {}, {}: {}",
-        "vec[]",
+        "vec[rand]",
         num,
         desc,
-        bench_env(0 as usize, |idx| {
-            *idx += 1;
-            vec[*idx]
+        bench_env(rng.clone(), |rng| {
+            let idx = rng.gen_range(0, num);
+            vec[idx]
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        "rand only",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            rng.gen_range(0, num)
         })
     );
     println!(
@@ -54,8 +66,6 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            // let pos = rng.next_u64() as usize % num;
-            // let value = rng.next_u64() % wm.dim();
             let pos = rng.gen_range(0, num);
             let value = rng.gen_range(0, wm.dim());
             wm.rank(pos, value)
@@ -67,11 +77,9 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            // let pos = rng.next_u64() as usize % num;
-            // let value = rng.next_u64() % wm.dim();
-            let pos = rng.gen_range(0, num);
+            let rank = rng.gen_range(0, num);
             let value = rng.gen_range(0, wm.dim());
-            wm.select(pos, value)
+            wm.select(rank, value)
         })
     );
     println!(
@@ -80,11 +88,10 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            // let pos = rng.next_u64() as usize % num;
-            // let value = rng.next_u64() % wm.dim();
-            let pos = rng.gen_range(0, num);
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
             let value = rng.gen_range(0, wm.dim());
-            wm.count(0..pos, value)
+            wm.count(start..end, value)
         })
     );
     println!(
@@ -93,11 +100,10 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            // let pos = rng.next_u64() as usize % num;
-            // let value = rng.next_u64() % wm.dim();
-            let pos = rng.gen_range(0, num);
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
             let value = rng.gen_range(0, wm.dim());
-            wm.count_prefix(0..pos, value, wm.bit_len() / 2)
+            wm.count_prefix(start..end, value, wm.bit_len() / 2)
         })
     );
     println!(
@@ -106,11 +112,10 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            // let pos = rng.next_u64() as usize % num;
-            // let value = rng.next_u64() % wm.dim();
-            let pos = rng.gen_range(0, num);
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
             let value = rng.gen_range(0, wm.dim());
-            wm.search(0..pos, value).next()
+            wm.search(start..end, value).next()
         })
     );
     println!(
@@ -119,11 +124,61 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            // let pos = rng.next_u64() as usize % num;
-            // let value = rng.next_u64() % wm.dim();
-            let pos = rng.gen_range(0, num);
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
             let value = rng.gen_range(0, wm.dim());
-            wm.search_prefix(0..pos, value, wm.bit_len() / 2).next()
+            wm.search_prefix(start..end, value, wm.bit_len() / 2).next()
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".median()",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            wm.median(start..end)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".quantile()",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let k = rng.gen_range(0, end - start);
+            wm.quantile(start..end, k)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".sum_ex3(k=16)",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let val_end = rng.gen_range(0, wm.dim());
+            let val_start = rng.gen_range(0, val_end);
+            let k = 16;
+            wm.sum_experiment3(start..end, val_start..val_end, k)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".sum_ex3(k=256)",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let val_end = rng.gen_range(0, wm.dim());
+            let val_start = rng.gen_range(0, val_end);
+            let k = 256;
+            wm.sum_experiment3(start..end, val_start..val_end, k)
         })
     );
     println!("```");
