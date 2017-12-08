@@ -33,7 +33,8 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            let idx = rng.next_u64() as usize % num;
+            // let idx = rng.next_u64() as usize % num;
+            let idx = rng.gen_range(0, num); // slightly slower than the above :-(
             wm.lookup(idx)
         })
     );
@@ -53,8 +54,10 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            let pos = rng.next_u64() as usize % num;
-            let value = rng.next_u64() % wm.dim();
+            // let pos = rng.next_u64() as usize % num;
+            // let value = rng.next_u64() % wm.dim();
+            let pos = rng.gen_range(0, num);
+            let value = rng.gen_range(0, wm.dim());
             wm.rank(pos, value)
         })
     );
@@ -64,8 +67,10 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            let pos = rng.next_u64() as usize % 10;
-            let value = rng.next_u64() % wm.dim();
+            // let pos = rng.next_u64() as usize % num;
+            // let value = rng.next_u64() % wm.dim();
+            let pos = rng.gen_range(0, num);
+            let value = rng.gen_range(0, wm.dim());
             wm.select(pos, value)
         })
     );
@@ -75,8 +80,10 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            let pos = rng.next_u64() as usize % 10;
-            let value = rng.next_u64() % wm.dim();
+            // let pos = rng.next_u64() as usize % num;
+            // let value = rng.next_u64() % wm.dim();
+            let pos = rng.gen_range(0, num);
+            let value = rng.gen_range(0, wm.dim());
             wm.count(0..pos, value)
         })
     );
@@ -86,8 +93,10 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            let pos = rng.next_u64() as usize % 10;
-            let value = rng.next_u64() % wm.dim();
+            // let pos = rng.next_u64() as usize % num;
+            // let value = rng.next_u64() % wm.dim();
+            let pos = rng.gen_range(0, num);
+            let value = rng.gen_range(0, wm.dim());
             wm.count_prefix(0..pos, value, wm.bit_len() / 2)
         })
     );
@@ -97,8 +106,10 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            let pos = rng.next_u64() as usize % 10;
-            let value = rng.next_u64() % wm.dim();
+            // let pos = rng.next_u64() as usize % num;
+            // let value = rng.next_u64() % wm.dim();
+            let pos = rng.gen_range(0, num);
+            let value = rng.gen_range(0, wm.dim());
             wm.search(0..pos, value).next()
         })
     );
@@ -108,8 +119,10 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         num,
         desc,
         bench_env(rng.clone(), |rng| {
-            let pos = rng.next_u64() as usize % 10;
-            let value = rng.next_u64() % wm.dim();
+            // let pos = rng.next_u64() as usize % num;
+            // let value = rng.next_u64() % wm.dim();
+            let pos = rng.gen_range(0, num);
+            let value = rng.gen_range(0, wm.dim());
             wm.search_prefix(0..pos, value, wm.bit_len() / 2).next()
         })
     );
@@ -237,13 +250,7 @@ fn sum_uniform_find_sufficient_k(num: usize, lower: u64, upper: u64, accuracy_pc
     let wm = WaveletMatrix::new(&vec);
 
     let actual = vec.iter().sum::<u64>();
-    println!(
-        "{:>24}, N = {}, {}: {:?}",
-        "actual sum",
-        num,
-        desc,
-        actual,
-    );
+    println!("{:>24}, N = {}, {}: {:?}", "actual sum", num, desc, actual,);
 
     let mut k = 1;
     for _ in 0..100 {
@@ -281,12 +288,15 @@ fn error_pct(computed: u64, actual: u64) -> f64 {
     error / (actual as f64) * 100.0
 }
 
-fn random_upto(upper: u64) -> u64 {
-    let mut rng = rand::weak_rng();
-    let range = rand::distributions::Range::new(0, upper);
-    range.ind_sample(&mut rng)
-}
+// use rand::distributions::range::SampleRange;
 
+// fn random_upto<T: PartialOrd + SampleRange>(upper: u64) -> u64 {
+//     rand::weak_rng().gen_range(0, upper)
+// }
+
+// fn random_range<T: PartialOrd + SampleRange>(lower: T, upper: T) -> T {
+//     rand::weak_rng().gen_range(lower, upper)
+// }
 
 fn statistical_performance() {
     let num = 10000;
@@ -316,24 +326,26 @@ fn statistical_performance() {
     println!("#### Good (k=10)");
     println!("");
     statstical_helper(num, 300, 1500, 10);
-
 }
 
-fn statistical_sufficient_k(){
+fn statistical_sufficient_k() {
     println!();
     println!("### Finding sufficient k that achieve error < 1% for various ranges");
     println!();
+
     let num = 1000;
     let trial = 100;
+    let mut rng = rand::weak_rng();
+    let mut ks = std::collections::BTreeMap::new();
 
-    // let mut ks = Vec::new();
-    let mut ks = std::collections::BTreeMap::new(); 
     for _ in 0..trial {
-        let a = random_upto(65536);
-        let b = random_upto(65536);
+        let a = rng.gen_range(0, 65536);
+        let b = rng.gen_range(0, 65536);
         let lower = std::cmp::min(a, b);
         let upper = std::cmp::max(a, b);
+
         let k = sum_uniform_find_sufficient_k(num, lower, upper, 1.0);
+
         let k_entry = ks.entry(k).or_insert(0);
         *k_entry += 1;
     }
@@ -341,17 +353,22 @@ fn statistical_sufficient_k(){
     println!();
     println!("```");
     for k in ks {
-        println!("{:>2}: {:>2} {}", k.0, k.1, std::iter::repeat('*').take(k.1).collect::<String>());
+        println!(
+            "{:>2}: {:>2} {}",
+            k.0,
+            k.1,
+            std::iter::repeat('*').take(k.1).collect::<String>()
+        );
     }
     println!("```");
     println!();
-
 }
 
 fn main() {
-    // overall_performance();
+    // BENCH.md
+    overall_performance();
 
     // BENCH_SUM.md
-    statistical_performance();
-    statistical_sufficient_k();
+    // statistical_performance();
+    // statistical_sufficient_k();
 }
