@@ -236,7 +236,9 @@ fn statistical_performance() {
     println!("");
     println!("## Uniform distribution");
     println!("");
-    println!("For uniform distribution, `.sum()` produce good results using smaller number of `k`.");
+    println!(
+        "For uniform distribution, `.sum()` produce good results using smaller number of `k`."
+    );
     println!("");
 
     statstical_helper(10000, 0, 256, 5);
@@ -245,17 +247,17 @@ fn statistical_performance() {
     statstical_helper(10000, 255, 1024, 5);
     statstical_helper(10000, 256, 1025, 5);
 
-    statstical_helper(10000, 400 , 2000, 5);
+    statstical_helper(10000, 400, 2000, 5);
 
     println!("### Some value ranges require greater k to achieve error < 1%");
     println!("");
     println!("#### Bad (k=5)");
     println!("");
-    statstical_helper(10000, 300 , 1500, 5);
+    statstical_helper(10000, 300, 1500, 5);
 
     println!("#### Good (k=10)");
     println!("");
-    statstical_helper(10000, 300 , 1500, 10);
+    statstical_helper(10000, 300, 1500, 10);
 }
 
 fn main() {
