@@ -7,6 +7,51 @@ extern crate wavelet_matrix;
 use wavelet_matrix::WaveletMatrix;
 use rand::distributions::IndependentSample;
 
+struct WaitCooldown {
+    fastest: f64,
+    wait: f64,
+    ratio: f64,
+}
+
+impl WaitCooldown {
+    fn new() -> WaitCooldown {
+        let result = WaitCooldown::measure();
+        let time = result.ns_per_iter;
+        WaitCooldown {
+            fastest: time as f64,
+            wait: 1.0,
+            ratio: 1.1,
+        }
+    }
+
+    fn wait(&mut self) {
+        loop {
+            let result = WaitCooldown::measure();
+            let time = result.ns_per_iter;
+            if time > self.fastest * self.ratio {
+                let dur = std::time::Duration::from_secs(self.wait as u64);
+                std::thread::sleep(dur);
+                self.wait *= self.ratio;
+            } else if time < self.fastest {
+                self.fastest = time;
+                break;
+            } else {
+                break;
+            }
+        }
+
+        self.wait = 1.0;
+    }
+
+    fn measure() -> easybench::Stats {
+        let mut rng = rand::weak_rng();
+        let num = std::u64::MAX;
+        let stats = bench_env(rng.clone(), |rng| rng.gen_range(0, num));
+        println!("(wait for cpu cooldown) {}", stats);
+        stats
+    }
+}
+
 fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
     let mut rng = rand::weak_rng();
     let range = rand::distributions::Range::new(0, upper);
@@ -31,162 +76,136 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
         desc,
         dur_ns,
     );
-    println!(
-        "{:>24}, N = {}, {}: {}",
-        ".lookup(rand)",
-        num,
-        desc,
-        bench_env(rng.clone(), |rng| {
-            let idx = rng.gen_range(0, num);
-            wm.lookup(idx)
-        })
-    );
-    println!(
-        "{:>24}, N = {}, {}: {}",
-        "vec[rand]",
-        num,
-        desc,
-        bench_env(rng.clone(), |rng| {
-            let idx = rng.gen_range(0, num);
-            vec[idx]
-        })
-    );
-    println!(
-        "{:>24}, N = {}, {}: {}",
-        "rand only",
-        num,
-        desc,
-        bench_env(rng.clone(), |rng| {
-            rng.gen_range(0, num)
-        })
-    );
-    println!(
-        "{:>24}, N = {}, {}: {}",
-        ".rank()",
-        num,
-        desc,
-        bench_env(rng.clone(), |rng| {
-            let pos = rng.gen_range(0, num);
-            let value = rng.gen_range(0, wm.dim());
-            wm.rank(pos, value)
-        })
-    );
-    println!(
-        "{:>24}, N = {}, {}: {}",
-        ".select()",
-        num,
-        desc,
-        bench_env(rng.clone(), |rng| {
-            let rank = rng.gen_range(0, num);
-            let value = rng.gen_range(0, wm.dim());
-            wm.select(rank, value)
-        })
-    );
-    println!(
-        "{:>24}, N = {}, {}: {}",
-        ".count()",
-        num,
-        desc,
-        bench_env(rng.clone(), |rng| {
-            let end = rng.gen_range(0, num);
-            let start = rng.gen_range(0, end);
-            let value = rng.gen_range(0, wm.dim());
-            wm.count(start..end, value)
-        })
-    );
-    println!(
-        "{:>24}, N = {}, {}: {}",
-        ".count_prefix()",
-        num,
-        desc,
-        bench_env(rng.clone(), |rng| {
-            let end = rng.gen_range(0, num);
-            let start = rng.gen_range(0, end);
-            let value = rng.gen_range(0, wm.dim());
-            wm.count_prefix(start..end, value, wm.bit_len() / 2)
-        })
-    );
-    println!(
-        "{:>24}, N = {}, {}: {}",
-        ".search().next()",
-        num,
-        desc,
-        bench_env(rng.clone(), |rng| {
-            let end = rng.gen_range(0, num);
-            let start = rng.gen_range(0, end);
-            let value = rng.gen_range(0, wm.dim());
-            wm.search(start..end, value).next()
-        })
-    );
-    println!(
-        "{:>24}, N = {}, {}: {}",
-        ".search_prefix().next()",
-        num,
-        desc,
-        bench_env(rng.clone(), |rng| {
-            let end = rng.gen_range(0, num);
-            let start = rng.gen_range(0, end);
-            let value = rng.gen_range(0, wm.dim());
-            wm.search_prefix(start..end, value, wm.bit_len() / 2).next()
-        })
-    );
-    println!(
-        "{:>24}, N = {}, {}: {}",
-        ".median()",
-        num,
-        desc,
-        bench_env(rng.clone(), |rng| {
-            let end = rng.gen_range(0, num);
-            let start = rng.gen_range(0, end);
-            wm.median(start..end)
-        })
-    );
-    println!(
-        "{:>24}, N = {}, {}: {}",
-        ".quantile()",
-        num,
-        desc,
-        bench_env(rng.clone(), |rng| {
-            let end = rng.gen_range(0, num);
-            let start = rng.gen_range(0, end);
-            let k = rng.gen_range(0, end - start);
-            wm.quantile(start..end, k)
-        })
-    );
-    println!(
-        "{:>24}, N = {}, {}: {}",
-        ".sum_ex3(k=16)",
-        num,
-        desc,
-        bench_env(rng.clone(), |rng| {
-            let end = rng.gen_range(0, num);
-            let start = rng.gen_range(0, end);
-            let val_end = rng.gen_range(0, wm.dim());
-            let val_start = rng.gen_range(0, val_end);
-            let k = 16;
-            wm.sum_experiment3(start..end, val_start..val_end, k)
-        })
-    );
-    println!(
-        "{:>24}, N = {}, {}: {}",
-        ".sum_ex3(k=256)",
-        num,
-        desc,
-        bench_env(rng.clone(), |rng| {
-            let end = rng.gen_range(0, num);
-            let start = rng.gen_range(0, end);
-            let val_end = rng.gen_range(0, wm.dim());
-            let val_start = rng.gen_range(0, val_end);
-            let k = 256;
-            wm.sum_experiment3(start..end, val_start..val_end, k)
-        })
-    );
+    println!("{:>24}, N = {}, {}: {}",
+             ".lookup(rand)",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+                 let idx = rng.gen_range(0, num);
+                 wm.lookup(idx)
+             }));
+    println!("{:>24}, N = {}, {}: {}",
+             "vec[rand]",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+                 let idx = rng.gen_range(0, num);
+                 vec[idx]
+             }));
+    println!("{:>24}, N = {}, {}: {}",
+             "rand only",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| rng.gen_range(0, num)));
+    println!("{:>24}, N = {}, {}: {}",
+             ".rank()",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+                 let pos = rng.gen_range(0, num);
+                 let value = rng.gen_range(0, wm.dim());
+                 wm.rank(pos, value)
+             }));
+    println!("{:>24}, N = {}, {}: {}",
+             ".select()",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+                 let rank = rng.gen_range(0, num);
+                 let value = rng.gen_range(0, wm.dim());
+                 wm.select(rank, value)
+             }));
+    println!("{:>24}, N = {}, {}: {}",
+             ".count()",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+                 let end = rng.gen_range(0, num);
+                 let start = rng.gen_range(0, end);
+                 let value = rng.gen_range(0, wm.dim());
+                 wm.count(start..end, value)
+             }));
+    println!("{:>24}, N = {}, {}: {}",
+             ".count_prefix()",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+                 let end = rng.gen_range(0, num);
+                 let start = rng.gen_range(0, end);
+                 let value = rng.gen_range(0, wm.dim());
+                 wm.count_prefix(start..end, value, wm.bit_len() / 2)
+             }));
+    println!("{:>24}, N = {}, {}: {}",
+             ".search().next()",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+                 let end = rng.gen_range(0, num);
+                 let start = rng.gen_range(0, end);
+                 let value = rng.gen_range(0, wm.dim());
+                 wm.search(start..end, value).next()
+             }));
+    println!("{:>24}, N = {}, {}: {}",
+             ".search_prefix().next()",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+                 let end = rng.gen_range(0, num);
+                 let start = rng.gen_range(0, end);
+                 let value = rng.gen_range(0, wm.dim());
+                 wm.search_prefix(start..end, value, wm.bit_len() / 2).next()
+             }));
+    println!("{:>24}, N = {}, {}: {}",
+             ".median()",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+                 let end = rng.gen_range(0, num);
+                 let start = rng.gen_range(0, end);
+                 wm.median(start..end)
+             }));
+    println!("{:>24}, N = {}, {}: {}",
+             ".quantile()",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+                 let end = rng.gen_range(0, num);
+                 let start = rng.gen_range(0, end);
+                 let k = rng.gen_range(0, end - start);
+                 wm.quantile(start..end, k)
+             }));
+    println!("{:>24}, N = {}, {}: {}",
+             ".sum_ex3(k=16)",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+        let end = rng.gen_range(0, num);
+        let start = rng.gen_range(0, end);
+        let val_end = rng.gen_range(0, wm.dim());
+        let val_start = rng.gen_range(0, val_end);
+        let k = 16;
+        wm.sum_experiment3(start..end, val_start..val_end, k)
+    }));
+    println!("{:>24}, N = {}, {}: {}",
+             ".sum_ex3(k=256)",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+        let end = rng.gen_range(0, num);
+        let start = rng.gen_range(0, end);
+        let val_end = rng.gen_range(0, wm.dim());
+        let val_start = rng.gen_range(0, val_end);
+        let k = 256;
+        wm.sum_experiment3(start..end, val_start..val_end, k)
+    }));
     println!("```");
     println!("");
 }
 
 fn overall_performance() {
     let long_test = true;
+
+    let mut wcd = WaitCooldown::new();
 
     println!("# Overall Performance");
     println!("");
@@ -195,33 +214,48 @@ fn overall_performance() {
     println!("");
 
     if long_test {
+        wcd.wait();
         overall_helper(10000000, "16-bit values", std::u16::MAX as u64, 50);
+        wcd.wait();
         overall_helper(1000000, "16-bit values", std::u16::MAX as u64, 5);
     }
+    wcd.wait();
     overall_helper(100000, "16-bit values", std::u16::MAX as u64, 1);
+    wcd.wait();
     overall_helper(10000, "16-bit values", std::u16::MAX as u64, 1);
+    wcd.wait();
     overall_helper(1000, "16-bit values", std::u16::MAX as u64, 1);
 
     println!("## 32-bit Values");
     println!();
 
     if long_test {
+        wcd.wait();
         overall_helper(10000000, "32-bit values", std::u32::MAX as u64, 100);
+        wcd.wait();
         overall_helper(1000000, "32-bit values", std::u32::MAX as u64, 10);
     }
+    wcd.wait();
     overall_helper(100000, "32-bit values", std::u32::MAX as u64, 3);
+    wcd.wait();
     overall_helper(10000, "32-bit values", std::u32::MAX as u64, 1);
+    wcd.wait();
     overall_helper(1000, "32-bit values", std::u32::MAX as u64, 1);
 
     println!("## 64-bit Values");
     println!();
 
     if long_test {
+        wcd.wait();
         overall_helper(10000000, "64-bit values", std::u64::MAX as u64, 200);
+        wcd.wait();
         overall_helper(1000000, "64-bit values", std::u64::MAX as u64, 20);
     }
+    wcd.wait();
     overall_helper(100000, "64-bit values", std::u64::MAX as u64, 6);
+    wcd.wait();
     overall_helper(10000, "64-bit values", std::u64::MAX as u64, 1);
+    wcd.wait();
     overall_helper(1000, "64-bit values", std::u64::MAX as u64, 1);
 }
 
@@ -247,7 +281,7 @@ fn statstical_helper(num: usize, lower: u64, upper: u64, k: usize) {
             num,
             desc,
             actual,
-            // bench(|| vec.iter().sum::<u64>())
+        // bench(|| vec.iter().sum::<u64>())
         );
 
         let computed = wm.sum_experiment1(0..wm.len(), 0..wm.dim(), k);
@@ -359,9 +393,8 @@ fn statistical_performance() {
     println!("");
     println!("## Uniform distribution");
     println!("");
-    println!(
-        "For uniform distribution, `.sum()` produce good results using smaller number of `k`."
-    );
+    println!("For uniform distribution, `.sum()` produce good results using smaller number of \
+              `k`.");
     println!("");
 
     statstical_helper(num, 0, 256, 5);
@@ -408,12 +441,10 @@ fn statistical_sufficient_k() {
     println!();
     println!("```");
     for k in ks {
-        println!(
-            "{:>2}: {:>2} {}",
-            k.0,
-            k.1,
-            std::iter::repeat('*').take(k.1).collect::<String>()
-        );
+        println!("{:>2}: {:>2} {}",
+                 k.0,
+                 k.1,
+                 std::iter::repeat('*').take(k.1).collect::<String>());
     }
     println!("```");
     println!();
