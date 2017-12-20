@@ -1,5 +1,5 @@
 extern crate easybench;
-use easybench::{bench, bench_env, bench_limit};
+use easybench::{bench, bench_env};
 use rand::Rng;
 extern crate rand;
 extern crate wavelet_matrix;

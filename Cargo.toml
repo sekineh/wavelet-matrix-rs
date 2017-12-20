@@ -1,6 +1,6 @@
 [package]
 name = "wavelet-matrix"
-version = "0.4.4"
+version = "0.4.5"
 authors = ["SEKINE, Hideki <sekineh@me.com>"]
 description = "A wavelet matrix implementation. Supports various near-O(1) queries on large number of symbols or integers."
 repository = "https://github.com/sekineh/wavelet-matrix-rs"
@@ -18,7 +18,8 @@ num = "0.1.40"
 itertools = "0.7.2"
 # criterion = "0.1.0"
 # bencher = "0.1.4"
-easybench = { git = "https://github.com/sekineh/easybench-rs" }
+# easybench = { git = "https://github.com/sekineh/easybench-rs" }
+easybench = "0.1.3"
 
 [[bench]]
 name = "easybench"
