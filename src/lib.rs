@@ -80,6 +80,6 @@
 extern crate succinct;
 
 mod rsdic_simple;
-
+mod node_range;
 mod wavelet_matrix;
 pub use wavelet_matrix::*;
