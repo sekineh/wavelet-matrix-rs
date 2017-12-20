@@ -11,6 +11,7 @@ struct WaitCooldown {
     fastest: f64,
     wait: f64,
     ratio: f64,
+    backoff: f64,
 }
 
 impl WaitCooldown {
@@ -21,6 +22,7 @@ impl WaitCooldown {
             fastest: time as f64,
             wait: 1.0,
             ratio: 1.1,
+            backoff: 1.2,
         }
     }
 
@@ -31,7 +33,7 @@ impl WaitCooldown {
             if time > self.fastest * self.ratio {
                 let dur = std::time::Duration::from_secs(self.wait as u64);
                 std::thread::sleep(dur);
-                self.wait *= self.ratio;
+                self.wait *= self.backoff;
             } else if time < self.fastest {
                 self.fastest = time;
                 break;
