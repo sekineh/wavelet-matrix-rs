@@ -14,6 +14,14 @@ See crate document top for further examples.
 
 - https://docs.rs/wavelet-matrix/
 
+## Benchmarks
+
+- Overall Performance
+  - https://github.com/sekineh/wavelet-matrix-rs/blob/master/BENCH.md
+
+- Error evaluation of O(1) SUM
+  - https://github.com/sekineh/wavelet-matrix-rs/blob/master/BENCH_SUM.md
+
 ## Features
 
 Given an unsigned integer sequence T, it provides the following queries.
@@ -118,7 +126,7 @@ Improvement over Experiment 1.  They use custom node enumerator to minimize the 
 
 ##### Experiment 3
 
-Improvement over Experiment 2.  They return `Range<u64>` to tell how accurate the computed value is.
+Improvement over Experiment 2.  They use `Range<u64>` to tell how accurate the computed value is.
 
 - [EXPERIMENTAL] `.sum_experiment3(start..end, val_start..val_end, k)`:
 
@@ -130,6 +138,18 @@ Improvement over Experiment 2.  They return `Range<u64>` to tell how accurate th
   - Note: When found nothing, it returns `.len()` instead of None.
 
 ## Releases
+
+### v0.4.4
+
+- Add `.median()` and `.quantile()`. They are quite fast, only take 3-5 us on 16-bit values.
+- Add `.top_k_ranges()` which is faster than `.top_k()` in worst case.
+
+- Add `.sum_experiment1()`, `.mean_experiment1()` and `.variance_experiment1()`.
+- Add `.sum_experiment2()`.
+- Add `.sum_experiment3()`.
+
+- Add BENCH.md bench report.
+- Add BENCH_SUM.md bench report.
 
 ### v0.4.3
 
