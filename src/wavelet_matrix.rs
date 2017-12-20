@@ -3,13 +3,14 @@ use succinct::SpaceUsage;
 use rsdic_simple::*;
 use std::collections::BinaryHeap;
 use node_range::*;
+use std::cmp::Ordering;
 
-#[derive(Debug)]
-pub enum Operator {
-    Equal,
-    LessThan,
-    GreaterThan,
-}
+// #[derive(Debug)]
+// pub enum Operator {
+//     Equal,
+//     LessThan,
+//     GreaterThan,
+// }
 
 /// WaveletMatrix supports various near-O(1) queries on the sequence of integers.
 #[derive(Debug)]
@@ -115,22 +116,22 @@ impl WaveletMatrix {
 
     /// Returns the number of the element `e` which satisfies `e == value` included in T[pos_range]
     pub fn count(&self, pos_range: Range<usize>, value: u64) -> usize {
-        self.prefix_rank_op(pos_range, value, 0, Operator::Equal)
+        self.prefix_rank_op(pos_range, value, 0, Ordering::Equal)
     }
 
     /// Returns the number of the element `e` which satisfies `e < value` included in T[pos_range]
     pub fn count_lt(&self, pos_range: Range<usize>, value: u64) -> usize {
-        self.prefix_rank_op(pos_range, value, 0, Operator::LessThan)
+        self.prefix_rank_op(pos_range, value, 0, Ordering::Less)
     }
 
     /// Returns the number of the element `e` which satisfies `e > value` included in T[pos_range]
     pub fn count_gt(&self, pos_range: Range<usize>, value: u64) -> usize {
-        self.prefix_rank_op(pos_range, value, 0, Operator::GreaterThan)
+        self.prefix_rank_op(pos_range, value, 0, Ordering::Greater)
     }
 
     /// Returns the number of the element `e` which satisfies `(e >> ignore_bit) == (value >> ignore_bit)` included in T[pos_range]
     pub fn count_prefix(&self, pos_range: Range<usize>, value: u64, ignore_bit: u8) -> usize {
-        self.prefix_rank_op(pos_range, value, ignore_bit, Operator::Equal)
+        self.prefix_rank_op(pos_range, value, ignore_bit, Ordering::Equal)
     }
 
     /// Returns the number of the element `e` which satisfies `val_range.start <= e < val_range.end` included in T[pos_range]
@@ -163,7 +164,7 @@ impl WaveletMatrix {
     ///
     /// The range specified is half open, i.e. `[0, pos)`.  When `pos` is 0, the range includes no value.
     pub fn rank(&self, pos: usize, value: u64) -> usize {
-        self.prefix_rank_op(0..pos, value, 0, Operator::Equal)
+        self.prefix_rank_op(0..pos, value, 0, Ordering::Equal)
     }
 
     /// `.rank()` with:
@@ -175,7 +176,7 @@ impl WaveletMatrix {
                       pos_range: Range<usize>,
                       val: u64,
                       ignore_bit: u8,
-                      operator: Operator)
+                      operator: Ordering)
                       -> usize {
         let mut bpos = pos_range.start;
         let mut epos = pos_range.end;
@@ -186,13 +187,13 @@ impl WaveletMatrix {
                 let rsd = &self.layers[depth as usize];
                 let bit = get_bit_msb(val, depth, self.bit_len);
                 if bit {
-                    if let Operator::LessThan = operator {
+                    if let Ordering::Less = operator {
                         rank += rsd.rank(epos, !bit) - rsd.rank(bpos, !bit);
                     }
                     bpos = rsd.rank(bpos, bit) + rsd.zero_num();
                     epos = rsd.rank(epos, bit) + rsd.zero_num();
                 } else {
-                    if let Operator::GreaterThan = operator {
+                    if let Ordering::Greater = operator {
                         rank += rsd.rank(epos, !bit) - rsd.rank(bpos, !bit);
                     }
                     bpos = rsd.rank(bpos, bit);
@@ -201,7 +202,7 @@ impl WaveletMatrix {
             }
         }
         match operator {
-            Operator::Equal => epos - bpos,
+            Ordering::Equal => epos - bpos,
             _ => rank,
         }
     }
