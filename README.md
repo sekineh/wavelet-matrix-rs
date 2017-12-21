@@ -1,5 +1,7 @@
 # Wavelet Matrix for Rust language
 
+[![Build Status](https://travis-ci.org/sekineh/wavelet-matrix-rs.svg?branch=master)](https://travis-ci.org/sekineh/wavelet-matrix-rs)
+
 It provides the various analytics on very large sequence of unsigned integers in constant time.
 
 ## Usage
@@ -18,6 +20,7 @@ See crate document top for further examples.
 
 - Overall Performance
   - https://github.com/sekineh/wavelet-matrix-rs/blob/master/BENCH.md
+  - Bench is performed on Intel Xeon 2800 MHz
 
 - Error evaluation of O(1) SUM
   - https://github.com/sekineh/wavelet-matrix-rs/blob/master/BENCH_SUM.md
