@@ -142,6 +142,10 @@ Improvement over Experiment 2.  They use `Range<u64>` to tell how accurate the c
 
 ## Releases
 
+### v0.4.7
+
+- Fix test bug #3
+
 ### v0.4.6
 
 - Add test for `.median()` and `.quantile()`. 
