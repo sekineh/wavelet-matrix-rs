@@ -1071,7 +1071,7 @@ mod tests {
         if max != 0 {
             rng.gen_range(0, max)            
         } else {
-            rng.gen_range(0, 1)
+            0
         }
     }
 
@@ -1237,6 +1237,7 @@ mod tests {
     }
     #[test]
     fn layers_4() {
+        random_test(9, 16);
         random_test(10240, 16);
         random_test(10231, 15);
     }
