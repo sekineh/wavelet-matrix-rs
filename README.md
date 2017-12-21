@@ -142,17 +142,19 @@ Improvement over Experiment 2.  They use `Range<u64>` to tell how accurate the c
 
 ## Releases
 
+### v0.4.5
+
+- Fix dependent crate.
+
 ### v0.4.4
 
 - Add `.median()` and `.quantile()`. They are quite fast, only take 3-5 us on 16-bit values.
 - Add `.top_k_ranges()` which is faster than `.top_k()` in worst case.
-
 - Add `.sum_experiment1()`, `.mean_experiment1()` and `.variance_experiment1()`.
 - Add `.sum_experiment2()`.
 - Add `.sum_experiment3()`.
-
-- Add BENCH.md bench report.
-- Add BENCH_SUM.md bench report.
+- Add `BENCH.md` bench report.
+- Add `BENCH_SUM.md` bench report.
 
 ### v0.4.3
 
