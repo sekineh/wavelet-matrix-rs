@@ -183,8 +183,9 @@ impl WaveletMatrix {
                     if let Ordering::Less = operator {
                         rank += rsd.rank(epos, !bit) - rsd.rank(bpos, !bit);
                     }
-                    bpos = rsd.rank(bpos, bit) + rsd.zero_num();
-                    epos = rsd.rank(epos, bit) + rsd.zero_num();
+                    let zero_num = rsd.zero_num();
+                    bpos = rsd.rank(bpos, bit) + zero_num;
+                    epos = rsd.rank(epos, bit) + zero_num;
                 } else {
                     if let Ordering::Greater = operator {
                         rank += rsd.rank(epos, !bit) - rsd.rank(bpos, !bit);
@@ -218,8 +219,9 @@ impl WaveletMatrix {
         let bit = get_bit_msb(val, depth, self.bit_len);
         let rsd = &self.layers[depth as usize];
         if bit {
-            pos = rsd.rank(pos, bit) + rsd.zero_num();
-            rank = self.select_helper(rank, val, pos, depth + 1, ignore_bit) - rsd.zero_num();
+            let zero_num = rsd.zero_num();
+            pos = rsd.rank(pos, bit) + zero_num;
+            rank = self.select_helper(rank, val, pos, depth + 1, ignore_bit) - zero_num;
         } else {
             pos = rsd.rank(pos, bit);
             rank = self.select_helper(rank, val, pos, depth + 1, ignore_bit);
