@@ -1127,10 +1127,12 @@ mod tests {
         let mut sorted: Vec<u64> = vec[range.clone()].iter().map(|x| *x).collect();
         sorted.sort();
 
-        let k = random_upto(sorted.len() as u64) as usize;
+        if sorted.len() > 0 {
+            let k = random_upto(sorted.len() as u64) as usize;
 
-        assert_eq!(wm.quantile(range.clone(), k), sorted[k]);
-        assert_eq!(wm.median(range.clone()), sorted[sorted.len() / 2]);
+            assert_eq!(wm.quantile(range.clone(), k), sorted[k]);
+            assert_eq!(wm.median(range.clone()), sorted[sorted.len() / 2]);
+        }
     }
 
     use std::collections::BTreeMap;
