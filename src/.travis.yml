@@ -1,0 +1,12 @@
+language: rust
+sudo: false
+
+matrix:
+  include:
+    - rust: 1.15.0
+    - rust: stable
+
+script:
+  - lscpu
+  - cargo test
+  - cargo bench
