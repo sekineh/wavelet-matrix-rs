@@ -1068,7 +1068,11 @@ mod tests {
 
     fn random_upto(max: u64) -> u64 {
         let mut rng = rand::weak_rng();
-        rng.gen_range(0, max)
+        if max != 0 {
+            rng.gen_range(0, max)            
+        } else {
+            rng.gen_range(0, 1)
+        }
     }
 
     fn test_count_all(wm: &WaveletMatrix,
