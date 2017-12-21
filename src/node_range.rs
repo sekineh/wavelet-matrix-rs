@@ -22,11 +22,11 @@ impl QueryOnNode {
         }
     }
     #[inline]
-    pub fn count(&self) -> usize {
+    fn count(&self) -> usize {
         self.pos_end - self.pos_start
     }
     #[inline]
-    pub fn value_range(&self) -> Range<u64> {
+    fn value_range(&self) -> Range<u64> {
         let shift = self.bit_len - self.depth;
         self.prefix_char << shift..(self.prefix_char + 1) << shift
     }
@@ -41,18 +41,6 @@ impl QueryOnNode {
     //     (vr.end + vr.start) / 2 * (self.count() as u64)
     // }
 }
-
-// impl Ord for QueryOnNode {
-//     fn cmp(&self, other: &Self) -> Ordering {
-//         if self.count() != other.count() {
-//             self.count().cmp(&other.count()) // wide node first
-//         } else if self.depth != other.depth {
-//             self.depth.cmp(&other.depth) // deepest node first
-//         } else {
-//             self.pos_start.cmp(&other.pos_start) // just to make the order more predictable
-//         }
-//     }
-// }
 
 /// Comparator trait
 pub trait NodeRange: Ord {

@@ -5,13 +5,6 @@ use std::collections::BinaryHeap;
 use node_range::*;
 use std::cmp::Ordering;
 
-// #[derive(Debug)]
-// pub enum Operator {
-//     Equal,
-//     LessThan,
-//     GreaterThan,
-// }
-
 /// WaveletMatrix supports various near-O(1) queries on the sequence of integers.
 #[derive(Debug)]
 pub struct WaveletMatrix {
