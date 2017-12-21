@@ -829,7 +829,7 @@ impl WaveletMatrix {
     /// ```
     pub fn quantile(&self, pos_range: Range<usize>, k: usize) -> u64 {
         self.validate_pos_range(&pos_range);
-        
+
         let mut bpos = pos_range.start;
         let mut epos = pos_range.end;
         let mut value: u64 = 0;
@@ -957,12 +957,10 @@ fn get_bit_len(val: u64) -> u8 {
 #[cfg(test)]
 mod tests {
     extern crate rand;
-    // extern crate num;
     extern crate itertools;
 
     use super::*;
-    use self::rand::distributions;
-    use wavelet_matrix::tests::rand::distributions::IndependentSample;
+    use wavelet_matrix::tests::rand::Rng;
 
     #[test]
     fn example() {
@@ -1069,9 +1067,8 @@ mod tests {
     }
 
     fn random_upto(max: u64) -> u64 {
-        let range = distributions::range::Range::new(0, max);
-        let mut rng = rand::thread_rng();
-        range.ind_sample(&mut rng)
+        let mut rng = rand::weak_rng();
+        rng.gen_range(0, max)
     }
 
     fn test_count_all(wm: &WaveletMatrix,
@@ -1117,6 +1114,19 @@ mod tests {
                        .filter(|x| *x.1 >> ignore_bit == val >> ignore_bit)
                        .map(|x| x.0 + range.start)
                        .collect::<Vec<usize>>());
+    }
+
+    fn test_statistics_all(wm: &WaveletMatrix,
+                       vec: &Vec<u64>,
+                       range: Range<usize>) {
+
+        let mut sorted: Vec<u64> = vec[range.clone()].iter().map(|x| *x).collect();
+        sorted.sort();
+
+        let k = random_upto(sorted.len() as u64) as usize;
+
+        assert_eq!(wm.quantile(range.clone(), k), sorted[k]);
+        assert_eq!(wm.median(range.clone()), sorted[sorted.len() / 2]);
     }
 
     use std::collections::BTreeMap;
@@ -1194,6 +1204,8 @@ mod tests {
             test_count_all(&wm, &vec, val, ignore_bit, range.clone());
             test_count_all(&wm, &vec, val + 1, ignore_bit, range.clone());
 
+            test_statistics_all(&wm, &vec, range.clone());
+
             if i == 0 {
                 test_search_all(&wm, &vec, val, ignore_bit, range.clone());
                 test_search_all(&wm, &vec, val + 1, ignore_bit, range.clone());
@@ -1209,7 +1221,7 @@ mod tests {
 
     #[test]
     fn layers_64() {
-        random_test(1024, ::std::u64::MAX - 1);
+        random_test(1024, ::std::u64::MAX);
         random_test(1023, ::std::u64::MAX - 1);
     }
     #[test]
@@ -1234,5 +1246,19 @@ mod tests {
         let vals: Vec<u64> = vec![0,1,2];
         let wm = WaveletMatrix::new(&vals);
         let _ = wm.lookup(3);
+    }
+    #[test]
+    #[should_panic]
+    fn count_panic_start() {
+        let vals: Vec<u64> = vec![0,1,2];
+        let wm = WaveletMatrix::new(&vals);
+        let _ = wm.count(3..3, 1);
+    }
+    #[test]
+    #[should_panic]
+    fn count_panic_end() {
+        let vals: Vec<u64> = vec![0,1,2];
+        let wm = WaveletMatrix::new(&vals);
+        let _ = wm.count(0..4, 1);
     }
 }

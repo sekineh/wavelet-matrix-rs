@@ -94,10 +94,10 @@ To achieve O(1) performance regardless of the number of unique values, use `.top
 
 #### O(1) Median / O(1) Quantile
 
-- [EXPERIMENTAL] `.median(start..end)`:
+- `.median(start..end)`:
   - Returns the median value from `T[start..end]`.
   - same as `.quantile(start..end, start + (end - start) / 2)`.
-- [EXPERIMENTAL] `.quantile(start..end, k)`:
+- `.quantile(start..end, k)`:
   - Returns the (k+1)th smallest value from `T[start..end]`.
 
 #### O(1) Sum / O(1) Average / O(1) Variance
@@ -141,6 +141,11 @@ Improvement over Experiment 2.  They use `Range<u64>` to tell how accurate the c
   - Note: When found nothing, it returns `.len()` instead of None.
 
 ## Releases
+
+### v0.4.6
+
+- Add test for `.median()` and `.quantile()`. 
+- Add index range check.
 
 ### v0.4.5
 
