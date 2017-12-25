@@ -17,11 +17,11 @@ pub struct WaveletMatrix {
 
 impl WaveletMatrix {
     /// Create a new WaveletMatrix struct from a Vec<u64> `vals`.
-    /// 
+    ///
     /// The values contained in `vals` should be less than `u64::MAX`.
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `vals` include `u64::MAX`.
     pub fn new(vals: &Vec<u64>) -> WaveletMatrix {
         // let dim = get_dim(&vals);
@@ -86,9 +86,9 @@ impl WaveletMatrix {
     }
 
     /// Returns the value at the position `pos`, i.e. `T[pos]`.
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when index `pos` is out of range.
     pub fn lookup(&self, pos: usize) -> u64 {
         let mut val: u64 = 0;
@@ -133,61 +133,61 @@ impl WaveletMatrix {
     #[inline]
     fn validate_pos_range(&self, pos_range: &Range<usize>) {
         if pos_range.start >= self.len() {
-            panic!("pos_range.start: out of range");            
+            panic!("pos_range.start: out of range");
         } else if pos_range.end > self.len() {
             panic!("pos_range.end: out of range");
-        }            
+        }
     }
 
     /// Returns the number of the element `e` which satisfies `e == value` included in T[pos_range]
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
     pub fn count(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Ordering::Equal)
     }
 
     /// Returns the number of the element `e` which satisfies `e < value` included in T[pos_range]
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
     pub fn count_lt(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Ordering::Less)
     }
 
     /// Returns the number of the element `e` which satisfies `e > value` included in T[pos_range]
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
     pub fn count_gt(&self, pos_range: Range<usize>, value: u64) -> usize {
         self.prefix_rank_op(pos_range, value, 0, Ordering::Greater)
     }
 
     /// Returns the number of the element `e` which satisfies `(e >> ignore_bit) == (value >> ignore_bit)` included in T[pos_range]
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
     pub fn count_prefix(&self, pos_range: Range<usize>, value: u64, ignore_bit: u8) -> usize {
         self.prefix_rank_op(pos_range, value, ignore_bit, Ordering::Equal)
     }
 
     /// Returns the number of the element `e` which satisfies `val_range.start <= e < val_range.end` included in T[pos_range]
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
     pub fn count_range(&self, pos_range: Range<usize>, val_range: Range<u64>) -> usize {
         self.count_lt(pos_range.clone(), val_range.end) - self.count_lt(pos_range, val_range.start)
     }
 
     /// Returns the iterator that generates indices that satisfy the condition `e == value`.
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
     pub fn search(&self, pos_range: Range<usize>, value: u64) -> WaveletMatrixSearch {
         self.validate_pos_range(&pos_range);
@@ -195,9 +195,9 @@ impl WaveletMatrix {
     }
 
     /// Returns the iterator that generates indices that satisfy the condition `e >> ignore_bit == value >> ignore_bit`.
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
     pub fn search_prefix(&self,
                          pos_range: Range<usize>,
@@ -217,9 +217,9 @@ impl WaveletMatrix {
     /// Returns the number of val found in `T[0..pos]`.
     ///
     /// The range specified is half open, i.e. `[0, pos)`.  When `pos` is 0, the range includes no value.
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos` is greater than len().
     pub fn rank(&self, pos: usize, value: u64) -> usize {
         self.prefix_rank_op(0..pos, value, 0, Ordering::Equal)
@@ -229,9 +229,9 @@ impl WaveletMatrix {
     /// - range support bpos..epos
     /// - prefix search support (`ignore_bit`)
     /// - operator support
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
     #[inline]
     fn prefix_rank_op(&self,
@@ -302,9 +302,9 @@ impl WaveletMatrix {
 
     /// list the `(value, count)` pairs in most-frequent-one-first order.
     /// values are constrained to the `val_range`.
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
     pub fn top_k(&self,
                  pos_range: Range<usize>,
@@ -318,11 +318,11 @@ impl WaveletMatrix {
     /// values are constrained to the `val_range`.
     ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
-    /// 
+    ///
     /// ## Example
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -351,7 +351,7 @@ impl WaveletMatrix {
     /// values are constrained to the `val_range`.
     ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
     pub fn max_k(&self,
                  pos_range: Range<usize>,
@@ -365,7 +365,7 @@ impl WaveletMatrix {
     /// values are constrained to the `val_range`.
     ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
     pub fn min_k(&self,
                  pos_range: Range<usize>,
@@ -376,7 +376,7 @@ impl WaveletMatrix {
     }
 
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
     fn values<N>(&self,
                  pos_range: Range<usize>,
@@ -413,7 +413,7 @@ impl WaveletMatrix {
     }
 
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
     fn value_ranges<N>(&self,
                        pos_range: Range<usize>,
@@ -510,11 +510,11 @@ impl WaveletMatrix {
     /// To avoid overflow during calculation, we recommend to use this function for < 32 bits values assuming the number of elements is ~ 32 bits.
     ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
-    /// 
+    ///
     /// ## Example
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -562,11 +562,11 @@ impl WaveletMatrix {
     /// It enumerates the top-k most relevant node ranges using custom node expander instead of `.top_k_ranges()`.
     ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
-    /// 
+    ///
     /// ## Example
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -614,11 +614,11 @@ impl WaveletMatrix {
     /// It returns `Range<u64>` value to tell how accurate the computed value is.
     ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
-    /// 
+    ///
     /// ## Example
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -673,11 +673,11 @@ impl WaveletMatrix {
     /// To avoid overflow during calculation, we recommend to use this function for < 32 bits values assuming the number of elements is ~ 32 bits.
     ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
-    /// 
+    ///
     /// ## Example
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -713,11 +713,11 @@ impl WaveletMatrix {
     /// To avoid overflow during calculation, we recommend to use this function for < 16 bits values assuming the number of elements is ~ 32 bits.
     ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
-    /// 
+    ///
     /// ## Example
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -775,11 +775,11 @@ impl WaveletMatrix {
     /// same as `.quantile(start..end, start + (end - start) / 2)`.
     ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
-    /// 
+    ///
     /// ## Example
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -802,11 +802,11 @@ impl WaveletMatrix {
     /// Returns the (k+1)th smallest value from `T[pos_range]`.
     ///
     /// ## Panics
-    /// 
+    ///
     /// It panics when `pos_range` is out of range.
-    /// 
+    ///
     /// ## Example
-    /// 
+    ///
     /// ```
     /// use wavelet_matrix::WaveletMatrix;
     ///
@@ -953,14 +953,15 @@ fn get_bit_len(val: u64) -> u8 {
     blen
 }
 
+#[cfg(test)]
+extern crate rand;
+#[cfg(test)]
+extern crate itertools;
 
 #[cfg(test)]
 mod tests {
-    extern crate rand;
-    extern crate itertools;
-
     use super::*;
-    use wavelet_matrix::tests::rand::Rng;
+    use wavelet_matrix::rand::Rng;
 
     #[test]
     fn example() {
@@ -1068,28 +1069,29 @@ mod tests {
 
     fn random_upto(max: u64) -> u64 {
         let mut rng = rand::weak_rng();
-        if max != 0 {
-            rng.gen_range(0, max)            
-        } else {
-            0
-        }
+        if max != 0 { rng.gen_range(0, max) } else { 0 }
     }
 
     fn test_count_rank_select(wm: &WaveletMatrix,
-                      vec: &Vec<u64>,
-                      val: u64,
-                      ignore_bit: u8,
-                      range: Range<usize>) {
+                              vec: &Vec<u64>,
+                              val: u64,
+                              ignore_bit: u8,
+                              range: Range<usize>) {
 
         assert_eq!(wm.count(range.clone(), val),
                    vec[range.clone()].iter().filter(|x| **x == val).count());
 
         assert_eq!(wm.rank(range.end, val),
                    vec[..range.end].iter().filter(|x| **x == val).count());
-        
+
         let rank = wm.rank(range.end, val);
         assert_eq!(wm.select(rank, val),
-                   vec.iter().enumerate().filter(|&(_i,v)| *v == val).nth(rank).unwrap_or((wm.len(), &val)).0);
+                   vec.iter()
+                       .enumerate()
+                       .filter(|&(_i, v)| *v == val)
+                       .nth(rank)
+                       .unwrap_or((wm.len(), &val))
+                       .0);
 
         assert_eq!(wm.count_prefix(range.clone(), val, ignore_bit),
                    vec[range.clone()]
@@ -1127,9 +1129,7 @@ mod tests {
                        .collect::<Vec<usize>>());
     }
 
-    fn test_statistics_all(wm: &WaveletMatrix,
-                       vec: &Vec<u64>,
-                       range: Range<usize>) {
+    fn test_statistics_all(wm: &WaveletMatrix, vec: &Vec<u64>, range: Range<usize>) {
 
         let mut sorted: Vec<u64> = vec[range.clone()].iter().map(|x| *x).collect();
         sorted.sort();
@@ -1210,9 +1210,11 @@ mod tests {
 
             let val = vec[idx];
             let ignore_bit = random_upto(wm.bit_len as u64) as u8;
-            let a = random_upto(wm.len() as u64) as usize;
-            let b = random_upto(wm.len() as u64) as usize;
-            let range = ::std::cmp::min(a, b)..::std::cmp::max(a, b);
+            let range = {
+                let a = random_upto(wm.len() as u64) as usize;
+                let b = random_upto(wm.len() as u64) as usize + 1;
+                ::std::cmp::min(a, b)..::std::cmp::max(a, b)
+            };
 
             test_count_rank_select(&wm, &vec, val, ignore_bit, range.clone());
             test_count_rank_select(&wm, &vec, val + 1, ignore_bit, range.clone());
@@ -1223,9 +1225,11 @@ mod tests {
                 test_search_all(&wm, &vec, val, ignore_bit, range.clone());
                 test_search_all(&wm, &vec, val + 1, ignore_bit, range.clone());
 
-                let a = random_upto(wm.dim as u64) as u64;
-                let b = random_upto(wm.dim as u64) as u64;
-                let val_range = ::std::cmp::min(a, b)..::std::cmp::max(a, b);
+                let val_range = {
+                    let a = random_upto(wm.dim as u64) as u64;
+                    let b = random_upto(wm.dim as u64) as u64 + 1;
+                    ::std::cmp::min(a, b)..::std::cmp::max(a, b)
+                };
                 test_ranking(&wm, &vec, val_range.clone(), range.clone(), 10);
                 test_ranking(&wm, &vec, val_range.clone(), range.clone(), 10000);
             }
@@ -1257,21 +1261,21 @@ mod tests {
     #[test]
     #[should_panic]
     fn lookup_panic() {
-        let vals: Vec<u64> = vec![0,1,2];
+        let vals: Vec<u64> = vec![0, 1, 2];
         let wm = WaveletMatrix::new(&vals);
         let _ = wm.lookup(3);
     }
     #[test]
     #[should_panic]
     fn count_panic_start() {
-        let vals: Vec<u64> = vec![0,1,2];
+        let vals: Vec<u64> = vec![0, 1, 2];
         let wm = WaveletMatrix::new(&vals);
         let _ = wm.count(3..3, 1);
     }
     #[test]
     #[should_panic]
     fn count_panic_end() {
-        let vals: Vec<u64> = vec![0,1,2];
+        let vals: Vec<u64> = vec![0, 1, 2];
         let wm = WaveletMatrix::new(&vals);
         let _ = wm.count(0..4, 1);
     }

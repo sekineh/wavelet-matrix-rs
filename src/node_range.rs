@@ -190,4 +190,3 @@ impl PartialEq for NodeRangeAscending {
         self.cmp(other) == Ordering::Equal
     }
 }
-
