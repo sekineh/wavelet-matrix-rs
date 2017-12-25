@@ -282,28 +282,55 @@ impl WaveletMatrix {
     /// Return the position of (`rank`+1)-th `val` in `T`.
     ///
     /// If no match has been found, it returns the length of self.
-    /// 
+    ///
     /// - `ignore_bit`: if set non-zero, performs prefix search.
     pub fn select_prefix(&self, rank: usize, val: u64, ignore_bit: u8) -> usize {
         self.select_helper(rank, val, 0, 0, ignore_bit)
     }
 
+    /// Return the position of (`rank`+1)-th value (< `val`) in `T`.
+    ///
+    /// If no match has been found, it returns the length of self.
+    pub fn select_lt(&self, rank: usize, val: u64) -> usize {
+        let mut start = 0;
+        let mut limit = self.len(); // exclusive bound
+
+        while limit - start > 1 {
+            let mid = (start + limit) / 2;
+
+            if self.count_lt(0..mid + 1, val) >= rank + 1 {
+                if self.count_lt(0..mid, val) == rank {
+                    return mid;
+                }
+                limit = mid;
+            } else {
+                start = mid;
+            }
+        }
+        limit
+    }
+
     /// ignore_bit: experimental support for prefix search
     fn select_helper(&self, rank: usize, val: u64, pos: usize, depth: u8, ignore_bit: u8) -> usize {
+        let mut pos = pos;
+        let mut rank = rank;
+
         if self.bit_len < ignore_bit || depth == self.bit_len - ignore_bit {
             return ::std::cmp::min(pos + rank, self.len());
         }
-        let mut pos = pos;
-        let mut rank = rank;
 
         let bit = get_bit_msb(val, depth, self.bit_len);
         let rsd = &self.layers[depth as usize];
         if bit {
             let zero_num = rsd.zero_num();
+            // next node position
             pos = rsd.rank(pos, bit) + zero_num;
+            // count of ones until (rank+1)'th value is encountered
             rank = self.select_helper(rank, val, pos, depth + 1, ignore_bit) - zero_num;
         } else {
+            // next node position
             pos = rsd.rank(pos, bit);
+            // count of zeros until (rank+1)'th value is encountered
             rank = self.select_helper(rank, val, pos, depth + 1, ignore_bit);
         }
         rsd.select(rank, bit)
@@ -1111,7 +1138,7 @@ mod tests {
                        .iter()
                        .filter(|x| (**x >> ignore_bit) == (val >> ignore_bit))
                        .count());
-        
+
         // .select_prefix()
         let rank = wm.count_prefix(0..range.end, val, ignore_bit);
         assert_eq!(wm.select_prefix(rank, val, ignore_bit),
@@ -1119,12 +1146,22 @@ mod tests {
                        .enumerate()
                        .filter(|&(_i, v)| *v >> ignore_bit == val >> ignore_bit)
                        .nth(rank)
-                       .unwrap_or((wm.len(), &val))
+                       .unwrap_or((wm.len(), &0 /* dummy */))
                        .0);
 
         // .count_lt()
         assert_eq!(wm.count_lt(range.clone(), val),
                    vec[range.clone()].iter().filter(|x| **x < val).count());
+
+        // .select_lt()
+        let rank = wm.count_lt(0..range.end, val);
+        assert_eq!(wm.select_lt(rank, val),
+                   vec.iter()
+                       .enumerate()
+                       .filter(|&(_i, v)| *v < val)
+                       .nth(rank)
+                       .unwrap_or((wm.len(), &0 /* dummy */))
+                       .0);
 
         // .count_gt()
         assert_eq!(wm.count_gt(range.clone(), val),

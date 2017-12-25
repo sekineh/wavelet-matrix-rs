@@ -118,6 +118,15 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
                  wm.select(rank, value)
              }));
     println!("{:>24}, N = {}, {}: {}",
+             ".select_lt()",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+                 let rank = rng.gen_range(0, num);
+                 let value = rng.gen_range(0, wm.dim());
+                 wm.select_lt(rank, value)
+             }));
+    println!("{:>24}, N = {}, {}: {}",
              ".count()",
              num,
              desc,
