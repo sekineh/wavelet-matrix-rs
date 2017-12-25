@@ -272,11 +272,20 @@ impl WaveletMatrix {
         }
     }
 
-    /// Return the position of (rank+1)-th val in T.
+    /// Return the position of (`rank`+1)-th `val` in `T`.
     ///
     /// If no match has been found, it returns the length of self.
     pub fn select(&self, rank: usize, val: u64) -> usize {
         self.select_helper(rank, val, 0, 0, 0)
+    }
+
+    /// Return the position of (`rank`+1)-th `val` in `T`.
+    ///
+    /// If no match has been found, it returns the length of self.
+    /// 
+    /// - `ignore_bit`: if set non-zero, performs prefix search.
+    pub fn select_prefix(&self, rank: usize, val: u64, ignore_bit: u8) -> usize {
+        self.select_helper(rank, val, 0, 0, ignore_bit)
     }
 
     /// ignore_bit: experimental support for prefix search
@@ -1078,12 +1087,15 @@ mod tests {
                               ignore_bit: u8,
                               range: Range<usize>) {
 
+        // .count()
         assert_eq!(wm.count(range.clone(), val),
                    vec[range.clone()].iter().filter(|x| **x == val).count());
 
+        // .rank()
         assert_eq!(wm.rank(range.end, val),
                    vec[..range.end].iter().filter(|x| **x == val).count());
 
+        // .select()
         let rank = wm.rank(range.end, val);
         assert_eq!(wm.select(rank, val),
                    vec.iter()
@@ -1093,15 +1105,28 @@ mod tests {
                        .unwrap_or((wm.len(), &val))
                        .0);
 
+        // .count_prefix()
         assert_eq!(wm.count_prefix(range.clone(), val, ignore_bit),
                    vec[range.clone()]
                        .iter()
                        .filter(|x| (**x >> ignore_bit) == (val >> ignore_bit))
                        .count());
+        
+        // .select_prefix()
+        let rank = wm.count_prefix(0..range.end, val, ignore_bit);
+        assert_eq!(wm.select_prefix(rank, val, ignore_bit),
+                   vec.iter()
+                       .enumerate()
+                       .filter(|&(_i, v)| *v >> ignore_bit == val >> ignore_bit)
+                       .nth(rank)
+                       .unwrap_or((wm.len(), &val))
+                       .0);
 
+        // .count_lt()
         assert_eq!(wm.count_lt(range.clone(), val),
                    vec[range.clone()].iter().filter(|x| **x < val).count());
 
+        // .count_gt()
         assert_eq!(wm.count_gt(range.clone(), val),
                    vec[range.clone()].iter().filter(|x| **x > val).count());
     }
