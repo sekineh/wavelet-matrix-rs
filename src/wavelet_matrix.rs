@@ -1075,7 +1075,7 @@ mod tests {
         }
     }
 
-    fn test_count_all(wm: &WaveletMatrix,
+    fn test_count_rank_select(wm: &WaveletMatrix,
                       vec: &Vec<u64>,
                       val: u64,
                       ignore_bit: u8,
@@ -1083,6 +1083,13 @@ mod tests {
 
         assert_eq!(wm.count(range.clone(), val),
                    vec[range.clone()].iter().filter(|x| **x == val).count());
+
+        assert_eq!(wm.rank(range.end, val),
+                   vec[..range.end].iter().filter(|x| **x == val).count());
+        
+        let rank = wm.rank(range.end, val);
+        assert_eq!(wm.select(rank, val),
+                   vec.iter().enumerate().filter(|&(_i,v)| *v == val).nth(rank).unwrap_or((wm.len(), &val)).0);
 
         assert_eq!(wm.count_prefix(range.clone(), val, ignore_bit),
                    vec[range.clone()]
@@ -1207,8 +1214,8 @@ mod tests {
             let b = random_upto(wm.len() as u64) as usize;
             let range = ::std::cmp::min(a, b)..::std::cmp::max(a, b);
 
-            test_count_all(&wm, &vec, val, ignore_bit, range.clone());
-            test_count_all(&wm, &vec, val + 1, ignore_bit, range.clone());
+            test_count_rank_select(&wm, &vec, val, ignore_bit, range.clone());
+            test_count_rank_select(&wm, &vec, val + 1, ignore_bit, range.clone());
 
             test_statistics_all(&wm, &vec, range.clone());
 
