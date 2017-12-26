@@ -25,3 +25,5 @@ easybench = "0.1.3"
 name = "easybench"
 harness = false
 
+[badges]
+travis-ci = { repository = "sekineh/wavelet-matrix-rs", branch = "master" }
