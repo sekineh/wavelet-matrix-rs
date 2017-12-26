@@ -186,6 +186,54 @@ fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
                  wm.quantile(start..end, k)
              }));
     println!("{:>24}, N = {}, {}: {}",
+             ".top_k(k=16)",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+        let end = rng.gen_range(0, num);
+        let start = rng.gen_range(0, end);
+        let val_end = rng.gen_range(0, wm.dim());
+        let val_start = rng.gen_range(0, val_end);
+        let k = 16;
+        wm.top_k(start..end, val_start..val_end, k)
+    }));
+    println!("{:>24}, N = {}, {}: {}",
+             ".top_k_ranges(k=16)",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+        let end = rng.gen_range(0, num);
+        let start = rng.gen_range(0, end);
+        let val_end = rng.gen_range(0, wm.dim());
+        let val_start = rng.gen_range(0, val_end);
+        let k = 16;
+        wm.top_k_ranges(start..end, val_start..val_end, k)
+    }));
+    println!("{:>24}, N = {}, {}: {}",
+             ".top_k_ranges(k=256)",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+        let end = rng.gen_range(0, num);
+        let start = rng.gen_range(0, end);
+        let val_end = rng.gen_range(0, wm.dim());
+        let val_start = rng.gen_range(0, val_end);
+        let k = 256;
+        wm.top_k_ranges(start..end, val_start..val_end, k)
+    }));
+    println!("{:>24}, N = {}, {}: {}",
+             ".top_k_ranges(k=65536)",
+             num,
+             desc,
+             bench_env(rng.clone(), |rng| {
+        let end = rng.gen_range(0, num);
+        let start = rng.gen_range(0, end);
+        let val_end = rng.gen_range(0, wm.dim());
+        let val_start = rng.gen_range(0, val_end);
+        let k = 65536;
+        wm.top_k_ranges(start..end, val_start..val_end, k)
+    }));
+    println!("{:>24}, N = {}, {}: {}",
              ".sum_ex3(k=16)",
              num,
              desc,
