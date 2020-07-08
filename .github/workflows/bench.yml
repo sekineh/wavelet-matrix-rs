@@ -1,0 +1,38 @@
+name: Bench
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os:
+        - ubuntu-latest
+        rust:
+        - stable
+        cargo_args:
+        - ""
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust }}
+        override: true
+
+    - name: lscpu
+      run: lscpu
+
+    - name: Run cargo bench
+      uses: actions-rs/cargo@v1
+      with:
+        command: bench
+        args: ${{ matrix.cargo_args }}
