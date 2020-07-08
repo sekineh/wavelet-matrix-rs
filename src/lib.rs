@@ -83,4 +83,4 @@ mod rsdic_simple;
 mod node_range;
 mod wavelet_matrix;
 
-pub use wavelet_matrix::*;
+pub use crate::wavelet_matrix::*;

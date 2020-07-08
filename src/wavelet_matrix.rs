@@ -3,8 +3,8 @@ use std::ops::Range;
 use std::collections::BinaryHeap;
 use std::cmp::Ordering;
 use succinct::SpaceUsage;
-use rsdic_simple::*;
-use node_range::*;
+use crate::rsdic_simple::*;
+use crate::node_range::*;
 
 /// WaveletMatrix supports various near-O(1) queries on the sequence of integers.
 #[derive(Debug)]
@@ -997,7 +997,7 @@ extern crate itertools;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wavelet_matrix::rand::Rng;
+    use crate::wavelet_matrix::rand::Rng;
 
     #[test]
     fn example() {
