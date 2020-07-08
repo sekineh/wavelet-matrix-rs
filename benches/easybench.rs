@@ -46,7 +46,7 @@ impl WaitCooldown {
     }
 
     fn measure() -> easybench::Stats {
-        let mut rng = rand::weak_rng();
+        let rng = rand::weak_rng();
         let num = std::u64::MAX;
         let stats = bench_env(rng.clone(), |rng| rng.gen_range(0, num));
         println!("(wait for cpu cooldown) {}", stats);
@@ -54,7 +54,7 @@ impl WaitCooldown {
     }
 }
 
-fn overall_helper(num: usize, desc: &str, upper: u64, limit_secs: u64) {
+fn overall_helper(num: usize, desc: &str, upper: u64, _limit_secs: u64) {
     let mut rng = rand::weak_rng();
     let range = rand::distributions::Range::new(0, upper);
     let vec: Vec<u64> = std::iter::repeat(0)
