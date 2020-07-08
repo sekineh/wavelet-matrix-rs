@@ -39,7 +39,7 @@ impl WaveletMatrix {
         for depth in 0..bit_len {
             let mut next_zeros: Vec<u64> = Vec::with_capacity(vals.len());
             let mut next_ones: Vec<u64> = Vec::with_capacity(vals.len());
-            let mut rsd_ = RsDicBuilder::new();
+            let mut rsd_ = RsDicBuilder::with_capacity(vals.len() as u64);
             Self::filter(&zeros,
                          bit_len - depth - 1,
                          &mut next_zeros,

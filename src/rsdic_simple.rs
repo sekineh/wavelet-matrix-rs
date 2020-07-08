@@ -68,6 +68,9 @@ impl RsDicBuilder {
     pub fn new() -> Self {
         RsDicBuilder { bv: BitVector::new() }
     }
+    pub fn with_capacity(n: u64) -> Self {
+        RsDicBuilder { bv: BitVector::with_capacity(n) }
+    }
     #[inline]
     pub fn push_bit(&mut self, bit: bool) {
         self.bv.push_bit(bit);
