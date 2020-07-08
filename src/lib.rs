@@ -79,8 +79,8 @@
 
 extern crate succinct;
 
-mod rsdic_simple;
 mod node_range;
+mod rsdic_simple;
 mod wavelet_matrix;
 
 pub use crate::wavelet_matrix::*;

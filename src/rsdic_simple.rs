@@ -1,10 +1,10 @@
-use succinct::*;
-use succinct::rank::RankSupport;
-use succinct::select::SelectSupport;
-use succinct::SpaceUsage;
 use std::fmt;
 use std::fmt::Debug;
 use std::fmt::Formatter;
+use succinct::rank::RankSupport;
+use succinct::select::SelectSupport;
+use succinct::SpaceUsage;
+use succinct::*;
 
 pub struct RsDic {
     select_support: BinSearchSelect<JacobsonRank<BitVector>>,
@@ -12,9 +12,11 @@ pub struct RsDic {
 
 impl Debug for RsDic {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f,
-               "RsDic: {{ bit_len(): {} }}",
-               self.select_support.inner().inner().bit_len())
+        write!(
+            f,
+            "RsDic: {{ bit_len(): {} }}",
+            self.select_support.inner().inner().bit_len()
+        )
     }
 }
 
@@ -66,10 +68,14 @@ pub struct RsDicBuilder {
 
 impl RsDicBuilder {
     pub fn new() -> Self {
-        RsDicBuilder { bv: BitVector::new() }
+        RsDicBuilder {
+            bv: BitVector::new(),
+        }
     }
     pub fn with_capacity(n: u64) -> Self {
-        RsDicBuilder { bv: BitVector::with_capacity(n) }
+        RsDicBuilder {
+            bv: BitVector::with_capacity(n),
+        }
     }
     #[inline]
     pub fn push_bit(&mut self, bit: bool) {
@@ -78,7 +84,9 @@ impl RsDicBuilder {
     pub fn build(self) -> RsDic {
         let rank = JacobsonRank::new(self.bv);
         let select = BinSearchSelect::new(rank);
-        RsDic { select_support: select }
+        RsDic {
+            select_support: select,
+        }
     }
 }
 

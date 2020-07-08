@@ -4,8 +4,8 @@ use rand::Rng;
 extern crate rand;
 extern crate wavelet_matrix;
 
-use wavelet_matrix::WaveletMatrix;
 use rand::distributions::IndependentSample;
+use wavelet_matrix::WaveletMatrix;
 
 struct WaitCooldown {
     fastest: f64,
@@ -73,190 +73,223 @@ fn overall_helper(num: usize, desc: &str, upper: u64, _limit_secs: u64) {
     let dur_ns = dur.as_secs() as f64 * 1e9 + dur.subsec_nanos() as f64;
     println!(
         "{:>24}, N = {}, {}: {:>10} ns   (only 1 iteration)",
-        "WaveletMatrix::new()",
+        "WaveletMatrix::new()", num, desc, dur_ns,
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".lookup(rand)",
         num,
         desc,
-        dur_ns,
+        bench_env(rng.clone(), |rng| {
+            let idx = rng.gen_range(0, num);
+            wm.lookup(idx)
+        })
     );
-    println!("{:>24}, N = {}, {}: {}",
-             ".lookup(rand)",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-                 let idx = rng.gen_range(0, num);
-                 wm.lookup(idx)
-             }));
-    println!("{:>24}, N = {}, {}: {}",
-             "vec[rand]",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-                 let idx = rng.gen_range(0, num);
-                 vec[idx]
-             }));
-    println!("{:>24}, N = {}, {}: {}",
-             "rand only",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| rng.gen_range(0, num)));
-    println!("{:>24}, N = {}, {}: {}",
-             ".rank()",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-                 let pos = rng.gen_range(0, num);
-                 let value = rng.gen_range(0, wm.dim());
-                 wm.rank(pos, value)
-             }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".select()",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-                 let rank = rng.gen_range(0, num);
-                 let value = rng.gen_range(0, wm.dim());
-                 wm.select(rank, value)
-             }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".select_lt()",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-                 let rank = rng.gen_range(0, num);
-                 let value = rng.gen_range(0, wm.dim());
-                 wm.select_lt(rank, value)
-             }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".count()",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-                 let end = rng.gen_range(0, num);
-                 let start = rng.gen_range(0, end);
-                 let value = rng.gen_range(0, wm.dim());
-                 wm.count(start..end, value)
-             }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".count_prefix()",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-                 let end = rng.gen_range(0, num);
-                 let start = rng.gen_range(0, end);
-                 let value = rng.gen_range(0, wm.dim());
-                 wm.count_prefix(start..end, value, wm.bit_len() / 2)
-             }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".search().next()",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-                 let end = rng.gen_range(0, num);
-                 let start = rng.gen_range(0, end);
-                 let value = rng.gen_range(0, wm.dim());
-                 wm.search(start..end, value).next()
-             }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".search_prefix().next()",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-                 let end = rng.gen_range(0, num);
-                 let start = rng.gen_range(0, end);
-                 let value = rng.gen_range(0, wm.dim());
-                 wm.search_prefix(start..end, value, wm.bit_len() / 2).next()
-             }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".median()",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-                 let end = rng.gen_range(0, num);
-                 let start = rng.gen_range(0, end);
-                 wm.median(start..end)
-             }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".quantile()",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-                 let end = rng.gen_range(0, num);
-                 let start = rng.gen_range(0, end);
-                 let k = rng.gen_range(0, end - start);
-                 wm.quantile(start..end, k)
-             }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".top_k(k=16)",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-        let end = rng.gen_range(0, num);
-        let start = rng.gen_range(0, end);
-        let val_end = rng.gen_range(0, wm.dim());
-        let val_start = rng.gen_range(0, val_end);
-        let k = 16;
-        wm.top_k(start..end, val_start..val_end, k)
-    }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".top_k_ranges(k=16)",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-        let end = rng.gen_range(0, num);
-        let start = rng.gen_range(0, end);
-        let val_end = rng.gen_range(0, wm.dim());
-        let val_start = rng.gen_range(0, val_end);
-        let k = 16;
-        wm.top_k_ranges(start..end, val_start..val_end, k)
-    }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".top_k_ranges(k=256)",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-        let end = rng.gen_range(0, num);
-        let start = rng.gen_range(0, end);
-        let val_end = rng.gen_range(0, wm.dim());
-        let val_start = rng.gen_range(0, val_end);
-        let k = 256;
-        wm.top_k_ranges(start..end, val_start..val_end, k)
-    }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".top_k_ranges(k=65536)",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-        let end = rng.gen_range(0, num);
-        let start = rng.gen_range(0, end);
-        let val_end = rng.gen_range(0, wm.dim());
-        let val_start = rng.gen_range(0, val_end);
-        let k = 65536;
-        wm.top_k_ranges(start..end, val_start..val_end, k)
-    }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".sum_ex3(k=16)",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-        let end = rng.gen_range(0, num);
-        let start = rng.gen_range(0, end);
-        let val_end = rng.gen_range(0, wm.dim());
-        let val_start = rng.gen_range(0, val_end);
-        let k = 16;
-        wm.sum_experiment3(start..end, val_start..val_end, k)
-    }));
-    println!("{:>24}, N = {}, {}: {}",
-             ".sum_ex3(k=256)",
-             num,
-             desc,
-             bench_env(rng.clone(), |rng| {
-        let end = rng.gen_range(0, num);
-        let start = rng.gen_range(0, end);
-        let val_end = rng.gen_range(0, wm.dim());
-        let val_start = rng.gen_range(0, val_end);
-        let k = 256;
-        wm.sum_experiment3(start..end, val_start..val_end, k)
-    }));
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        "vec[rand]",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let idx = rng.gen_range(0, num);
+            vec[idx]
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        "rand only",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| rng.gen_range(0, num))
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".rank()",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let pos = rng.gen_range(0, num);
+            let value = rng.gen_range(0, wm.dim());
+            wm.rank(pos, value)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".select()",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let rank = rng.gen_range(0, num);
+            let value = rng.gen_range(0, wm.dim());
+            wm.select(rank, value)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".select_lt()",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let rank = rng.gen_range(0, num);
+            let value = rng.gen_range(0, wm.dim());
+            wm.select_lt(rank, value)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".count()",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let value = rng.gen_range(0, wm.dim());
+            wm.count(start..end, value)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".count_prefix()",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let value = rng.gen_range(0, wm.dim());
+            wm.count_prefix(start..end, value, wm.bit_len() / 2)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".search().next()",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let value = rng.gen_range(0, wm.dim());
+            wm.search(start..end, value).next()
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".search_prefix().next()",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let value = rng.gen_range(0, wm.dim());
+            wm.search_prefix(start..end, value, wm.bit_len() / 2).next()
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".median()",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            wm.median(start..end)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".quantile()",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let k = rng.gen_range(0, end - start);
+            wm.quantile(start..end, k)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".top_k(k=16)",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let val_end = rng.gen_range(0, wm.dim());
+            let val_start = rng.gen_range(0, val_end);
+            let k = 16;
+            wm.top_k(start..end, val_start..val_end, k)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".top_k_ranges(k=16)",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let val_end = rng.gen_range(0, wm.dim());
+            let val_start = rng.gen_range(0, val_end);
+            let k = 16;
+            wm.top_k_ranges(start..end, val_start..val_end, k)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".top_k_ranges(k=256)",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let val_end = rng.gen_range(0, wm.dim());
+            let val_start = rng.gen_range(0, val_end);
+            let k = 256;
+            wm.top_k_ranges(start..end, val_start..val_end, k)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".top_k_ranges(k=65536)",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let val_end = rng.gen_range(0, wm.dim());
+            let val_start = rng.gen_range(0, val_end);
+            let k = 65536;
+            wm.top_k_ranges(start..end, val_start..val_end, k)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".sum_ex3(k=16)",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let val_end = rng.gen_range(0, wm.dim());
+            let val_start = rng.gen_range(0, val_end);
+            let k = 16;
+            wm.sum_experiment3(start..end, val_start..val_end, k)
+        })
+    );
+    println!(
+        "{:>24}, N = {}, {}: {}",
+        ".sum_ex3(k=256)",
+        num,
+        desc,
+        bench_env(rng.clone(), |rng| {
+            let end = rng.gen_range(0, num);
+            let start = rng.gen_range(0, end);
+            let val_end = rng.gen_range(0, wm.dim());
+            let val_start = rng.gen_range(0, val_end);
+            let k = 256;
+            wm.sum_experiment3(start..end, val_start..val_end, k)
+        })
+    );
     println!("```");
     println!("");
 }
@@ -340,7 +373,7 @@ fn statstical_helper(num: usize, lower: u64, upper: u64, k: usize) {
             num,
             desc,
             actual,
-        // bench(|| vec.iter().sum::<u64>())
+            // bench(|| vec.iter().sum::<u64>())
         );
 
         let computed = wm.sum_experiment1(0..wm.len(), 0..wm.dim(), k);
@@ -452,8 +485,10 @@ fn statistical_performance() {
     println!("");
     println!("## Uniform distribution");
     println!("");
-    println!("For uniform distribution, `.sum()` produce good results using smaller number of \
-              `k`.");
+    println!(
+        "For uniform distribution, `.sum()` produce good results using smaller number of \
+              `k`."
+    );
     println!("");
 
     statstical_helper(num, 0, 256, 5);
@@ -500,10 +535,12 @@ fn statistical_sufficient_k() {
     println!();
     println!("```");
     for k in ks {
-        println!("{:>2}: {:>2} {}",
-                 k.0,
-                 k.1,
-                 std::iter::repeat('*').take(k.1).collect::<String>());
+        println!(
+            "{:>2}: {:>2} {}",
+            k.0,
+            k.1,
+            std::iter::repeat('*').take(k.1).collect::<String>()
+        );
     }
     println!("```");
     println!();

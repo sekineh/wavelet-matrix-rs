@@ -1,17 +1,17 @@
 // use std;
-use std::ops::Range;
-use std::collections::BinaryHeap;
-use std::cmp::Ordering;
-use succinct::SpaceUsage;
-use crate::rsdic_simple::*;
 use crate::node_range::*;
+use crate::rsdic_simple::*;
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
+use std::ops::Range;
+use succinct::SpaceUsage;
 
 /// WaveletMatrix supports various near-O(1) queries on the sequence of integers.
 #[derive(Debug)]
 pub struct WaveletMatrix {
     layers: Vec<RsDic>,
-    dim: u64, // = max vals + 1
-    num: usize, // = layers[0].len()
+    dim: u64,    // = max vals + 1
+    num: usize,  // = layers[0].len()
     bit_len: u8, // = layers.len()
 }
 
@@ -40,16 +40,20 @@ impl WaveletMatrix {
             let mut next_zeros: Vec<u64> = Vec::with_capacity(vals.len());
             let mut next_ones: Vec<u64> = Vec::with_capacity(vals.len());
             let mut rsd_ = RsDicBuilder::with_capacity(vals.len() as u64);
-            Self::filter(&zeros,
-                         bit_len - depth - 1,
-                         &mut next_zeros,
-                         &mut next_ones,
-                         &mut rsd_);
-            Self::filter(&ones,
-                         bit_len - depth - 1,
-                         &mut next_zeros,
-                         &mut next_ones,
-                         &mut rsd_);
+            Self::filter(
+                &zeros,
+                bit_len - depth - 1,
+                &mut next_zeros,
+                &mut next_ones,
+                &mut rsd_,
+            );
+            Self::filter(
+                &ones,
+                bit_len - depth - 1,
+                &mut next_zeros,
+                &mut next_ones,
+                &mut rsd_,
+            );
             zeros = next_zeros;
             ones = next_ones;
             layers.push(rsd_.build());
@@ -63,11 +67,13 @@ impl WaveletMatrix {
         }
     }
 
-    fn filter(vals: &Vec<u64>,
-              shift: u8,
-              next_zeros: &mut Vec<u64>,
-              next_ones: &mut Vec<u64>,
-              rsd: &mut RsDicBuilder) {
+    fn filter(
+        vals: &Vec<u64>,
+        shift: u8,
+        next_zeros: &mut Vec<u64>,
+        next_ones: &mut Vec<u64>,
+        rsd: &mut RsDicBuilder,
+    ) {
         for val in vals {
             let bit = get_bit_lsb(*val, shift);
             rsd.push_bit(bit);
@@ -199,11 +205,12 @@ impl WaveletMatrix {
     /// ## Panics
     ///
     /// It panics when `pos_range` is out of range.
-    pub fn search_prefix(&self,
-                         pos_range: Range<usize>,
-                         value: u64,
-                         ignore_bit: u8)
-                         -> WaveletMatrixSearch {
+    pub fn search_prefix(
+        &self,
+        pos_range: Range<usize>,
+        value: u64,
+        ignore_bit: u8,
+    ) -> WaveletMatrixSearch {
         let rank = self.count_prefix(0..pos_range.start, value, ignore_bit);
         WaveletMatrixSearch {
             inner: &self,
@@ -234,12 +241,13 @@ impl WaveletMatrix {
     ///
     /// It panics when `pos_range` is out of range.
     #[inline]
-    fn prefix_rank_op(&self,
-                      pos_range: Range<usize>,
-                      val: u64,
-                      ignore_bit: u8,
-                      operator: Ordering)
-                      -> usize {
+    fn prefix_rank_op(
+        &self,
+        pos_range: Range<usize>,
+        val: u64,
+        ignore_bit: u8,
+        operator: Ordering,
+    ) -> usize {
         self.validate_pos_range(&pos_range);
 
         let mut bpos = pos_range.start;
@@ -342,11 +350,12 @@ impl WaveletMatrix {
     /// ## Panics
     ///
     /// It panics when `pos_range` is out of range.
-    pub fn top_k(&self,
-                 pos_range: Range<usize>,
-                 val_range: Range<u64>,
-                 k: usize)
-                 -> Vec<(u64, usize)> {
+    pub fn top_k(
+        &self,
+        pos_range: Range<usize>,
+        val_range: Range<u64>,
+        k: usize,
+    ) -> Vec<(u64, usize)> {
         self.values::<NodeRangeByFrequency>(pos_range, val_range, k)
     }
 
@@ -375,11 +384,12 @@ impl WaveletMatrix {
     /// assert_eq!(wm.top_k_ranges(0..wm.len(), 4..8,        4), vec![(4..5, 2), (5..6, 1), (6..7, 1)]);
     /// assert_eq!(wm.top_k_ranges(0..wm.len(), 2..9,        4), vec![(2..4, 3), (4..6, 3), (6..8, 1), (8..16, 1)]);
     /// ```
-    pub fn top_k_ranges(&self,
-                        pos_range: Range<usize>,
-                        val_range: Range<u64>,
-                        k: usize)
-                        -> Vec<(Range<u64>, usize)> {
+    pub fn top_k_ranges(
+        &self,
+        pos_range: Range<usize>,
+        val_range: Range<u64>,
+        k: usize,
+    ) -> Vec<(Range<u64>, usize)> {
         self.value_ranges::<NodeRangeByFrequency>(pos_range, val_range, k)
     }
 
@@ -389,11 +399,12 @@ impl WaveletMatrix {
     /// ## Panics
     ///
     /// It panics when `pos_range` is out of range.
-    pub fn max_k(&self,
-                 pos_range: Range<usize>,
-                 val_range: Range<u64>,
-                 k: usize)
-                 -> Vec<(u64, usize)> {
+    pub fn max_k(
+        &self,
+        pos_range: Range<usize>,
+        val_range: Range<u64>,
+        k: usize,
+    ) -> Vec<(u64, usize)> {
         self.values::<NodeRangeDescending>(pos_range, val_range, k)
     }
 
@@ -403,25 +414,27 @@ impl WaveletMatrix {
     /// ## Panics
     ///
     /// It panics when `pos_range` is out of range.
-    pub fn min_k(&self,
-                 pos_range: Range<usize>,
-                 val_range: Range<u64>,
-                 k: usize)
-                 -> Vec<(u64, usize)> {
+    pub fn min_k(
+        &self,
+        pos_range: Range<usize>,
+        val_range: Range<u64>,
+        k: usize,
+    ) -> Vec<(u64, usize)> {
         self.values::<NodeRangeAscending>(pos_range, val_range, k)
     }
 
     /// ## Panics
     ///
     /// It panics when `pos_range` is out of range.
-    fn values<N>(&self,
-                 pos_range: Range<usize>,
-                 val_range: Range<u64>,
-                 k: usize)
-                 -> Vec<(u64, usize)>
-        where N: NodeRange
+    fn values<N>(
+        &self,
+        pos_range: Range<usize>,
+        val_range: Range<u64>,
+        k: usize,
+    ) -> Vec<(u64, usize)>
+    where
+        N: NodeRange,
     {
-
         let mut res = Vec::new();
 
         self.validate_pos_range(&pos_range);
@@ -451,14 +464,15 @@ impl WaveletMatrix {
     /// ## Panics
     ///
     /// It panics when `pos_range` is out of range.
-    fn value_ranges<N>(&self,
-                       pos_range: Range<usize>,
-                       val_range: Range<u64>,
-                       k: usize)
-                       -> Vec<(Range<u64>, usize)>
-        where N: NodeRange
+    fn value_ranges<N>(
+        &self,
+        pos_range: Range<usize>,
+        val_range: Range<u64>,
+        k: usize,
+    ) -> Vec<(Range<u64>, usize)>
+    where
+        N: NodeRange,
     {
-
         let mut res = Vec::new();
 
         self.validate_pos_range(&pos_range);
@@ -474,7 +488,10 @@ impl WaveletMatrix {
             let qon = qons.pop().unwrap();
             let qon = qon.inner();
             if qon.depth == self.bit_len {
-                res.push((qon.prefix_char..qon.prefix_char + 1, qon.pos_end - qon.pos_start));
+                res.push((
+                    qon.prefix_char..qon.prefix_char + 1,
+                    qon.pos_end - qon.pos_start,
+                ));
             } else {
                 let next = self.expand_node(val_range.clone(), &qon);
                 for i in 0..next.len() {
@@ -485,8 +502,10 @@ impl WaveletMatrix {
         while let Some(qon) = qons.pop() {
             let qon = qon.inner();
             let shift = self.bit_len - qon.depth;
-            res.push((qon.prefix_char << shift..qon.prefix_char + 1 << shift,
-                      qon.pos_end - qon.pos_start));
+            res.push((
+                qon.prefix_char << shift..qon.prefix_char + 1 << shift,
+                qon.pos_end - qon.pos_start,
+            ));
         }
         res
     }
@@ -506,28 +525,32 @@ impl WaveletMatrix {
             // child for zero
             let next_prefix = qon.prefix_char << 1;
             if self.check_prefix(next_prefix, qon.depth + 1, val_range.clone()) {
-                next.push(QueryOnNode::new(bpos_zero..epos_zero,
-                                           next_prefix,
-                                           qon.depth + 1,
-                                           self.bit_len()));
+                next.push(QueryOnNode::new(
+                    bpos_zero..epos_zero,
+                    next_prefix,
+                    qon.depth + 1,
+                    self.bit_len(),
+                ));
             }
         }
         if epos_one > bpos_one {
             // child for one
             let next_prefix = (qon.prefix_char << 1) + 1;
             if self.check_prefix(next_prefix, qon.depth + 1, val_range) {
-                next.push(QueryOnNode::new(bpos_one..epos_one,
-                                           next_prefix,
-                                           qon.depth + 1,
-                                           self.bit_len()));
+                next.push(QueryOnNode::new(
+                    bpos_one..epos_one,
+                    next_prefix,
+                    qon.depth + 1,
+                    self.bit_len(),
+                ));
             }
         }
         next
     }
 
     fn check_prefix(&self, prefix: u64, depth: u8, val_range: Range<u64>) -> bool {
-        Self::prefix_code(val_range.start, depth, self.bit_len) <= prefix &&
-        prefix <= Self::prefix_code(val_range.end - 1, depth, self.bit_len)
+        Self::prefix_code(val_range.start, depth, self.bit_len) <= prefix
+            && prefix <= Self::prefix_code(val_range.end - 1, depth, self.bit_len)
     }
 
     fn prefix_code(x: u64, len: u8, bit_num: u8) -> u64 {
@@ -572,23 +595,23 @@ impl WaveletMatrix {
     /// assert_eq!(wm.sum_experiment1(0..wm.len(), 6..7, 12), (6, 1));
     /// assert_eq!(wm.sum_experiment1(3..8,        4..7, 12), (15, 3));
     /// ```
-    pub fn sum_experiment1(&self,
-                           pos_range: Range<usize>,
-                           val_range: Range<u64>,
-                           k: usize)
-                           -> (u64, usize) {
+    pub fn sum_experiment1(
+        &self,
+        pos_range: Range<usize>,
+        val_range: Range<u64>,
+        k: usize,
+    ) -> (u64, usize) {
         let ranges = self.top_k_ranges(pos_range, val_range, k);
 
-        let sum: u64 = ranges.iter()
+        let sum: u64 = ranges
+            .iter()
             .map(|&(ref r, count)| {
                 (r.start + r.end) / 2 // expected value 
                 * (count as u64)
             })
             .sum();
 
-        let count: usize = ranges.iter()
-            .map(|&(ref _r, count)| count)
-            .sum();
+        let count: usize = ranges.iter().map(|&(ref _r, count)| count).sum();
 
         (sum, count)
     }
@@ -624,23 +647,23 @@ impl WaveletMatrix {
     /// assert_eq!(wm.sum_experiment2(0..wm.len(), 6..7, 12), (6, 1));
     /// assert_eq!(wm.sum_experiment2(3..8,        4..7, 12), (15, 3));
     /// ```
-    pub fn sum_experiment2(&self,
-                           pos_range: Range<usize>,
-                           val_range: Range<u64>,
-                           k: usize)
-                           -> (u64, usize) {
+    pub fn sum_experiment2(
+        &self,
+        pos_range: Range<usize>,
+        val_range: Range<u64>,
+        k: usize,
+    ) -> (u64, usize) {
         let ranges = self.value_ranges::<NodeRangeBySumError>(pos_range, val_range, k);
 
-        let sum: u64 = ranges.iter()
+        let sum: u64 = ranges
+            .iter()
             .map(|&(ref r, count)| {
                 (r.start + r.end) / 2 // expected value 
                 * (count as u64)
             })
             .sum();
 
-        let count: usize = ranges.iter()
-            .map(|&(ref _r, count)| count)
-            .sum();
+        let count: usize = ranges.iter().map(|&(ref _r, count)| count).sum();
 
         (sum, count)
     }
@@ -676,24 +699,25 @@ impl WaveletMatrix {
     /// assert_eq!(wm.sum_experiment3(0..wm.len(), 6..7, 12), (6..7, 1));
     /// assert_eq!(wm.sum_experiment3(3..8,        4..7, 12), (15..16, 3));
     /// ```
-    pub fn sum_experiment3(&self,
-                           pos_range: Range<usize>,
-                           val_range: Range<u64>,
-                           k: usize)
-                           -> (Range<u64>, usize) {
+    pub fn sum_experiment3(
+        &self,
+        pos_range: Range<usize>,
+        val_range: Range<u64>,
+        k: usize,
+    ) -> (Range<u64>, usize) {
         let ranges = self.value_ranges::<NodeRangeBySumError>(pos_range, val_range, k);
 
-        let sum_min: u64 = ranges.iter()
+        let sum_min: u64 = ranges
+            .iter()
             .map(|&(ref r, count)| r.start * (count as u64))
             .sum();
 
-        let sum_max: u64 = ranges.iter()
+        let sum_max: u64 = ranges
+            .iter()
             .map(|&(ref r, count)| (r.end - 1) * (count as u64))
             .sum();
 
-        let count: usize = ranges.iter()
-            .map(|&(ref _r, count)| count)
-            .sum();
+        let count: usize = ranges.iter().map(|&(ref _r, count)| count).sum();
 
         (sum_min..sum_max + 1, count)
     }
@@ -728,11 +752,12 @@ impl WaveletMatrix {
     /// assert_eq!(wm.mean_experiment1(0..wm.len(), 0..wm.dim(), 5), 3); // got the actual average
     /// assert_eq!(wm.mean_experiment1(0..wm.len(), 0..wm.dim(), 12), 3);
     /// ```
-    pub fn mean_experiment1(&self,
-                            pos_range: Range<usize>,
-                            val_range: Range<u64>,
-                            k: usize)
-                            -> u64 {
+    pub fn mean_experiment1(
+        &self,
+        pos_range: Range<usize>,
+        val_range: Range<u64>,
+        k: usize,
+    ) -> u64 {
         let (sum, count) = self.sum_experiment1(pos_range, val_range, k);
 
         sum / (count as u64)
@@ -771,27 +796,28 @@ impl WaveletMatrix {
     ///               })
     ///               .sum::<u64>() / (vec.len() as u64), 6);
     /// ```
-    pub fn variance_experiment1(&self,
-                                pos_range: Range<usize>,
-                                val_range: Range<u64>,
-                                k: usize)
-                                -> u64 {
+    pub fn variance_experiment1(
+        &self,
+        pos_range: Range<usize>,
+        val_range: Range<u64>,
+        k: usize,
+    ) -> u64 {
         let ranges = self.top_k_ranges(pos_range, val_range, k);
 
-        let sum: u64 = ranges.iter()
+        let sum: u64 = ranges
+            .iter()
             .map(|&(ref r, count)| {
                 (r.start + r.end) / 2 // expected value 
                 * (count as u64)
             })
             .sum();
 
-        let count: usize = ranges.iter()
-            .map(|&(ref _r, count)| count)
-            .sum();
+        let count: usize = ranges.iter().map(|&(ref _r, count)| count).sum();
 
         let mean = sum / count as u64;
 
-        let variance: u64 = ranges.iter()
+        let variance: u64 = ranges
+            .iter()
             .map(|&(ref r, count)| {
                 let expected = (r.start + r.end) / 2;
                 let diff = if expected > mean {
@@ -801,7 +827,8 @@ impl WaveletMatrix {
                 };
                 diff * diff * (count as u64)
             })
-            .sum::<u64>() / count as u64;
+            .sum::<u64>()
+            / count as u64;
 
         variance
     }
@@ -918,7 +945,6 @@ impl SpaceUsage for WaveletMatrix {
     }
 }
 
-
 /// Thin builder that builds WaveletMatrix
 #[derive(Debug)]
 pub struct WaveletMatrixBuilder {
@@ -947,16 +973,18 @@ impl WaveletMatrixBuilder {
 #[derive(Debug)]
 pub struct WaveletMatrixSearch<'a> {
     inner: &'a WaveletMatrix, // underlying Wavelet Matrix
-    range: Range<usize>, // index range to be searched
-    rank: usize, // the next rank
-    value: u64, // value to be searched
-    ignore_bit: u8, // used in prefix search
+    range: Range<usize>,      // index range to be searched
+    rank: usize,              // the next rank
+    value: u64,               // value to be searched
+    ignore_bit: u8,           // used in prefix search
 }
 
 impl<'a> Iterator for WaveletMatrixSearch<'a> {
     type Item = usize;
     fn next(&mut self) -> Option<Self::Item> {
-        let pos = self.inner.select_helper(self.rank, self.value, 0, 0, self.ignore_bit);
+        let pos = self
+            .inner
+            .select_helper(self.rank, self.value, 0, 0, self.ignore_bit);
         self.rank += 1;
         if pos < self.range.end {
             Some(pos)
@@ -990,9 +1018,9 @@ fn get_bit_len(val: u64) -> u8 {
 }
 
 #[cfg(test)]
-extern crate rand;
-#[cfg(test)]
 extern crate itertools;
+#[cfg(test)]
+extern crate rand;
 
 #[cfg(test)]
 mod tests {
@@ -1030,32 +1058,52 @@ mod tests {
         assert_eq!(wm.count_range(0..wm.len(), 4..6), 3);
 
         // Searching
-        assert_eq!(wm.search(0..wm.len(), 4).collect::<Vec<usize>>(),
-                   vec![2, 6]);
+        assert_eq!(
+            wm.search(0..wm.len(), 4).collect::<Vec<usize>>(),
+            vec![2, 6]
+        );
         assert_eq!(wm.search(3..wm.len(), 4).collect::<Vec<usize>>(), vec![6]);
         assert_eq!(wm.search(0..wm.len(), 7).collect::<Vec<usize>>(), vec![]);
 
         // Ranking
-        assert_eq!(wm.top_k(0..wm.len(), 0..10, 12),
-                   vec![(2, 3), (1, 2), (4, 2), (0, 2), (5, 1), (6, 1), (9, 1)]);
-        assert_eq!(wm.top_k(0..wm.len(), 0..10, 4),
-                   vec![(2, 3), (1, 2), (4, 2), (0, 2)]);
-        assert_eq!(wm.top_k(0..wm.len(), 2..9, 12),
-                   vec![(2, 3), (4, 2), (5, 1), (6, 1)]);
+        assert_eq!(
+            wm.top_k(0..wm.len(), 0..10, 12),
+            vec![(2, 3), (1, 2), (4, 2), (0, 2), (5, 1), (6, 1), (9, 1)]
+        );
+        assert_eq!(
+            wm.top_k(0..wm.len(), 0..10, 4),
+            vec![(2, 3), (1, 2), (4, 2), (0, 2)]
+        );
+        assert_eq!(
+            wm.top_k(0..wm.len(), 2..9, 12),
+            vec![(2, 3), (4, 2), (5, 1), (6, 1)]
+        );
 
-        assert_eq!(wm.max_k(0..wm.len(), 0..10, 12),
-                   vec![(9, 1), (6, 1), (5, 1), (4, 2), (2, 3), (1, 2), (0, 2)]);
-        assert_eq!(wm.max_k(0..wm.len(), 0..10, 4),
-                   vec![(9, 1), (6, 1), (5, 1), (4, 2)]);
-        assert_eq!(wm.max_k(0..wm.len(), 2..9, 12),
-                   vec![(6, 1), (5, 1), (4, 2), (2, 3)]);
+        assert_eq!(
+            wm.max_k(0..wm.len(), 0..10, 12),
+            vec![(9, 1), (6, 1), (5, 1), (4, 2), (2, 3), (1, 2), (0, 2)]
+        );
+        assert_eq!(
+            wm.max_k(0..wm.len(), 0..10, 4),
+            vec![(9, 1), (6, 1), (5, 1), (4, 2)]
+        );
+        assert_eq!(
+            wm.max_k(0..wm.len(), 2..9, 12),
+            vec![(6, 1), (5, 1), (4, 2), (2, 3)]
+        );
 
-        assert_eq!(wm.min_k(0..wm.len(), 0..10, 12),
-                   vec![(0, 2), (1, 2), (2, 3), (4, 2), (5, 1), (6, 1), (9, 1)]);
-        assert_eq!(wm.min_k(0..wm.len(), 0..10, 4),
-                   vec![(0, 2), (1, 2), (2, 3), (4, 2)]);
-        assert_eq!(wm.min_k(0..wm.len(), 2..9, 12),
-                   vec![(2, 3), (4, 2), (5, 1), (6, 1)]);
+        assert_eq!(
+            wm.min_k(0..wm.len(), 0..10, 12),
+            vec![(0, 2), (1, 2), (2, 3), (4, 2), (5, 1), (6, 1), (9, 1)]
+        );
+        assert_eq!(
+            wm.min_k(0..wm.len(), 0..10, 4),
+            vec![(0, 2), (1, 2), (2, 3), (4, 2)]
+        );
+        assert_eq!(
+            wm.min_k(0..wm.len(), 2..9, 12),
+            vec![(2, 3), (4, 2), (5, 1), (6, 1)]
+        );
 
         // classic .rank()/.select() API
         assert_eq!(wm.rank(5, 1), 2);
@@ -1105,94 +1153,120 @@ mod tests {
 
     fn random_upto(max: u64) -> u64 {
         let mut rng = rand::weak_rng();
-        if max != 0 { rng.gen_range(0, max) } else { 0 }
+        if max != 0 {
+            rng.gen_range(0, max)
+        } else {
+            0
+        }
     }
 
-    fn test_count_rank_select(wm: &WaveletMatrix,
-                              vec: &Vec<u64>,
-                              val: u64,
-                              ignore_bit: u8,
-                              range: Range<usize>) {
-
+    fn test_count_rank_select(
+        wm: &WaveletMatrix,
+        vec: &Vec<u64>,
+        val: u64,
+        ignore_bit: u8,
+        range: Range<usize>,
+    ) {
         // .count()
-        assert_eq!(wm.count(range.clone(), val),
-                   vec[range.clone()].iter().filter(|x| **x == val).count());
+        assert_eq!(
+            wm.count(range.clone(), val),
+            vec[range.clone()].iter().filter(|x| **x == val).count()
+        );
 
         // .rank()
-        assert_eq!(wm.rank(range.end, val),
-                   vec[..range.end].iter().filter(|x| **x == val).count());
+        assert_eq!(
+            wm.rank(range.end, val),
+            vec[..range.end].iter().filter(|x| **x == val).count()
+        );
 
         // .select()
         let rank = wm.rank(range.end, val);
-        assert_eq!(wm.select(rank, val),
-                   vec.iter()
-                       .enumerate()
-                       .filter(|&(_i, v)| *v == val)
-                       .nth(rank)
-                       .unwrap_or((wm.len(), &val))
-                       .0);
+        assert_eq!(
+            wm.select(rank, val),
+            vec.iter()
+                .enumerate()
+                .filter(|&(_i, v)| *v == val)
+                .nth(rank)
+                .unwrap_or((wm.len(), &val))
+                .0
+        );
 
         // .count_prefix()
-        assert_eq!(wm.count_prefix(range.clone(), val, ignore_bit),
-                   vec[range.clone()]
-                       .iter()
-                       .filter(|x| (**x >> ignore_bit) == (val >> ignore_bit))
-                       .count());
+        assert_eq!(
+            wm.count_prefix(range.clone(), val, ignore_bit),
+            vec[range.clone()]
+                .iter()
+                .filter(|x| (**x >> ignore_bit) == (val >> ignore_bit))
+                .count()
+        );
 
         // .select_prefix()
         let rank = wm.count_prefix(0..range.end, val, ignore_bit);
-        assert_eq!(wm.select_prefix(rank, val, ignore_bit),
-                   vec.iter()
-                       .enumerate()
-                       .filter(|&(_i, v)| *v >> ignore_bit == val >> ignore_bit)
-                       .nth(rank)
-                       .unwrap_or((wm.len(), &0 /* dummy */))
-                       .0);
+        assert_eq!(
+            wm.select_prefix(rank, val, ignore_bit),
+            vec.iter()
+                .enumerate()
+                .filter(|&(_i, v)| *v >> ignore_bit == val >> ignore_bit)
+                .nth(rank)
+                .unwrap_or((wm.len(), &0 /* dummy */))
+                .0
+        );
 
         // .count_lt()
-        assert_eq!(wm.count_lt(range.clone(), val),
-                   vec[range.clone()].iter().filter(|x| **x < val).count());
+        assert_eq!(
+            wm.count_lt(range.clone(), val),
+            vec[range.clone()].iter().filter(|x| **x < val).count()
+        );
 
         // .select_lt()
         let rank = wm.count_lt(0..range.end, val);
-        assert_eq!(wm.select_lt(rank, val),
-                   vec.iter()
-                       .enumerate()
-                       .filter(|&(_i, v)| *v < val)
-                       .nth(rank)
-                       .unwrap_or((wm.len(), &0 /* dummy */))
-                       .0);
+        assert_eq!(
+            wm.select_lt(rank, val),
+            vec.iter()
+                .enumerate()
+                .filter(|&(_i, v)| *v < val)
+                .nth(rank)
+                .unwrap_or((wm.len(), &0 /* dummy */))
+                .0
+        );
 
         // .count_gt()
-        assert_eq!(wm.count_gt(range.clone(), val),
-                   vec[range.clone()].iter().filter(|x| **x > val).count());
+        assert_eq!(
+            wm.count_gt(range.clone(), val),
+            vec[range.clone()].iter().filter(|x| **x > val).count()
+        );
     }
 
-    fn test_search_all(wm: &WaveletMatrix,
-                       vec: &Vec<u64>,
-                       val: u64,
-                       ignore_bit: u8,
-                       range: Range<usize>) {
+    fn test_search_all(
+        wm: &WaveletMatrix,
+        vec: &Vec<u64>,
+        val: u64,
+        ignore_bit: u8,
+        range: Range<usize>,
+    ) {
+        assert_eq!(
+            wm.search(range.clone(), val).collect::<Vec<usize>>(),
+            vec[range.clone()]
+                .iter()
+                .enumerate()
+                .filter(|x| *x.1 == val)
+                .map(|x| x.0 + range.start)
+                .collect::<Vec<usize>>()
+        );
 
-        assert_eq!(wm.search(range.clone(), val).collect::<Vec<usize>>(),
-                   vec[range.clone()]
-                       .iter()
-                       .enumerate()
-                       .filter(|x| *x.1 == val)
-                       .map(|x| x.0 + range.start)
-                       .collect::<Vec<usize>>());
-
-        assert_eq!(wm.search_prefix(range.clone(), val, ignore_bit).collect::<Vec<usize>>(),
-                   vec[range.clone()]
-                       .iter()
-                       .enumerate()
-                       .filter(|x| *x.1 >> ignore_bit == val >> ignore_bit)
-                       .map(|x| x.0 + range.start)
-                       .collect::<Vec<usize>>());
+        assert_eq!(
+            wm.search_prefix(range.clone(), val, ignore_bit)
+                .collect::<Vec<usize>>(),
+            vec[range.clone()]
+                .iter()
+                .enumerate()
+                .filter(|x| *x.1 >> ignore_bit == val >> ignore_bit)
+                .map(|x| x.0 + range.start)
+                .collect::<Vec<usize>>()
+        );
     }
 
     fn test_statistics_all(wm: &WaveletMatrix, vec: &Vec<u64>, range: Range<usize>) {
-
         let mut sorted: Vec<u64> = vec[range.clone()].iter().map(|x| *x).collect();
         sorted.sort();
 
@@ -1215,44 +1289,54 @@ mod tests {
     }
 
     use self::itertools::Itertools;
-    fn test_ranking(wm: &WaveletMatrix,
-                    vec: &Vec<u64>,
-                    vals: Range<u64>,
-                    range: Range<usize>,
-                    len: usize) {
+    fn test_ranking(
+        wm: &WaveletMatrix,
+        vec: &Vec<u64>,
+        vals: Range<u64>,
+        range: Range<usize>,
+        len: usize,
+    ) {
+        assert_eq!(
+            wm.min_k(range.clone(), vals.clone(), len),
+            value_count(&vec[range.clone()])
+                .iter()
+                .into_iter()
+                .filter(|&(value, _count)| vals.start <= *value && *value < vals.end)
+                .take(len)
+                .map(|k| (*k.0, (k.1).0)) // value, count
+                .collect::<Vec<_>>()
+        );
 
-        assert_eq!(wm.min_k(range.clone(), vals.clone(), len),
-                   value_count(&vec[range.clone()]).iter()
-                       .into_iter()
-                       .filter(|&(value, _count)| vals.start <= *value && *value < vals.end)
-                       .take(len)
-                       .map(|k| (*k.0, (k.1).0)) // value, count
-                       .collect::<Vec<_>>());
+        assert_eq!(
+            wm.max_k(range.clone(), vals.clone(), len),
+            value_count(&vec[range.clone()])
+                .iter()
+                .into_iter()
+                .filter(|&(value, _count)| vals.start <= *value && *value < vals.end)
+                .rev()
+                .take(len)
+                .map(|k| (*k.0, (k.1).0)) // (value, count)
+                .collect::<Vec<_>>()
+        );
 
-        assert_eq!(wm.max_k(range.clone(), vals.clone(), len),
-                   value_count(&vec[range.clone()]).iter()
-                       .into_iter()
-                       .filter(|&(value, _count)| vals.start <= *value && *value < vals.end)
-                       .rev()
-                       .take(len)
-                       .map(|k| (*k.0, (k.1).0)) // (value, count)
-                       .collect::<Vec<_>>());
-
-        assert_eq!(wm.top_k(range.clone(), vals.clone(), len)
-                       .iter()
-                       .map(|&(_value, count)| count) // Note: currently only count is tested because value order is not predictable
-                       .collect::<Vec<_>>(),
-                   value_count(&vec[range.clone()]).iter()
-                       .into_iter()
-                       .filter(|&(value, _count)| vals.start <= *value && *value < vals.end)
-                       .sorted_by(|a, b| a.1.cmp(&b.1).reverse() ) // ordered by (count, first pos)
-                       .iter()
-                       .take(len)
-                       .map(|k| (*k.0, (k.1).0)) // (value, count)
-                       .collect::<Vec<_>>()
-                       .iter()
-                       .map(|&(_value, count)| count) // Note: currently only count is tested because value order is not predictable
-                       .collect::<Vec<_>>());
+        assert_eq!(
+            wm.top_k(range.clone(), vals.clone(), len)
+                .iter()
+                .map(|&(_value, count)| count) // Note: currently only count is tested because value order is not predictable
+                .collect::<Vec<_>>(),
+            value_count(&vec[range.clone()])
+                .iter()
+                .into_iter()
+                .filter(|&(value, _count)| vals.start <= *value && *value < vals.end)
+                .sorted_by(|a, b| a.1.cmp(&b.1).reverse()) // ordered by (count, first pos)
+                .iter()
+                .take(len)
+                .map(|k| (*k.0, (k.1).0)) // (value, count)
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|&(_value, count)| count) // Note: currently only count is tested because value order is not predictable
+                .collect::<Vec<_>>()
+        );
     }
 
     fn random_test(len: usize, val_max: u64) {
