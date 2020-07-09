@@ -8,6 +8,7 @@ keywords = ["wavelet-matrix", "succinct", "rank", "select"]
 categories = ["data-structures"]
 readme = "README.md"
 license = "MIT"
+edition = "2018"
 
 [dependencies]
 succinct = "0.4.2"

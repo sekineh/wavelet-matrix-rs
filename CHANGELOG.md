@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - minimum Rustc version is now 1.31.1
+- rust edition is now "2018"
 
 ### Removed
 - [CI] travis build is removed
