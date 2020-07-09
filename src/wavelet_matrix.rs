@@ -1,8 +1,8 @@
 // use std;
 use crate::node_range::*;
 use crate::rsdic_simple::*;
+use binary_heap_plus::*;
 use std::cmp::Ordering;
-use std::collections::BinaryHeap;
 use std::ops::Range;
 use succinct::SpaceUsage;
 
@@ -356,7 +356,7 @@ impl WaveletMatrix {
         val_range: Range<u64>,
         k: usize,
     ) -> Vec<(u64, usize)> {
-        self.values::<NodeRangeByFrequency>(pos_range, val_range, k)
+        self.values_by(pos_range, val_range, k, cmp_by_frequency)
     }
 
     /// list the `(range, count)` pairs in most-frequent-one-first order.
@@ -390,7 +390,7 @@ impl WaveletMatrix {
         val_range: Range<u64>,
         k: usize,
     ) -> Vec<(Range<u64>, usize)> {
-        self.value_ranges::<NodeRangeByFrequency>(pos_range, val_range, k)
+        self.value_ranges_by(pos_range, val_range, k, cmp_by_frequency)
     }
 
     /// list the `(value, count)` pairs in descending order.
@@ -405,7 +405,7 @@ impl WaveletMatrix {
         val_range: Range<u64>,
         k: usize,
     ) -> Vec<(u64, usize)> {
-        self.values::<NodeRangeDescending>(pos_range, val_range, k)
+        self.values_by(pos_range, val_range, k, cmp_by_descending)
     }
 
     /// list the `(value, count)` pairs in ascending order.
@@ -420,21 +420,19 @@ impl WaveletMatrix {
         val_range: Range<u64>,
         k: usize,
     ) -> Vec<(u64, usize)> {
-        self.values::<NodeRangeAscending>(pos_range, val_range, k)
+        self.values_by(pos_range, val_range, k, cmp_by_ascending)
     }
 
     /// ## Panics
     ///
     /// It panics when `pos_range` is out of range.
-    fn values<N>(
+    fn values_by(
         &self,
         pos_range: Range<usize>,
         val_range: Range<u64>,
         k: usize,
-    ) -> Vec<(u64, usize)>
-    where
-        N: NodeRange,
-    {
+        cmp: impl Fn(&QueryOnNode, &QueryOnNode) -> Ordering,
+    ) -> Vec<(u64, usize)> {
         let mut res = Vec::new();
 
         self.validate_pos_range(&pos_range);
@@ -442,19 +440,18 @@ impl WaveletMatrix {
         //     return res;
         // }
 
-        let mut qons: BinaryHeap<N> = BinaryHeap::new();
+        let mut qons: BinaryHeap<_, _> = BinaryHeap::new_by(cmp);
 
-        qons.push(NodeRange::new(pos_range, 0, 0, self.bit_len()));
+        qons.push(QueryOnNode::new(pos_range, 0, 0, self.bit_len()));
 
         while res.len() < k && !qons.is_empty() {
             let qon = qons.pop().unwrap();
-            let qon = qon.inner();
             if qon.depth == self.bit_len {
                 res.push((qon.prefix_char, qon.pos_end - qon.pos_start));
             } else {
                 let next = self.expand_node(val_range.clone(), &qon);
                 for i in 0..next.len() {
-                    qons.push(NodeRange::from(&next[i]));
+                    qons.push(next[i].clone());
                 }
             }
         }
@@ -464,15 +461,13 @@ impl WaveletMatrix {
     /// ## Panics
     ///
     /// It panics when `pos_range` is out of range.
-    fn value_ranges<N>(
+    fn value_ranges_by(
         &self,
         pos_range: Range<usize>,
         val_range: Range<u64>,
         k: usize,
-    ) -> Vec<(Range<u64>, usize)>
-    where
-        N: NodeRange,
-    {
+        cmp: impl Fn(&QueryOnNode, &QueryOnNode) -> Ordering,
+    ) -> Vec<(Range<u64>, usize)> {
         let mut res = Vec::new();
 
         self.validate_pos_range(&pos_range);
@@ -480,13 +475,12 @@ impl WaveletMatrix {
         //     return res; // return the empty vector
         // }
 
-        let mut qons: BinaryHeap<N> = BinaryHeap::new();
+        let mut qons: BinaryHeap<_, _> = BinaryHeap::new_by(cmp);
 
-        qons.push(NodeRange::new(pos_range, 0, 0, self.bit_len()));
+        qons.push(QueryOnNode::new(pos_range, 0, 0, self.bit_len()));
 
         while res.len() < k && !qons.is_empty() && qons.len() + res.len() < k {
             let qon = qons.pop().unwrap();
-            let qon = qon.inner();
             if qon.depth == self.bit_len {
                 res.push((
                     qon.prefix_char..qon.prefix_char + 1,
@@ -495,12 +489,11 @@ impl WaveletMatrix {
             } else {
                 let next = self.expand_node(val_range.clone(), &qon);
                 for i in 0..next.len() {
-                    qons.push(NodeRange::from(&next[i]));
+                    qons.push(next[i].clone());
                 }
             }
         }
         while let Some(qon) = qons.pop() {
-            let qon = qon.inner();
             let shift = self.bit_len - qon.depth;
             res.push((
                 qon.prefix_char << shift..qon.prefix_char + 1 << shift,
@@ -653,7 +646,7 @@ impl WaveletMatrix {
         val_range: Range<u64>,
         k: usize,
     ) -> (u64, usize) {
-        let ranges = self.value_ranges::<NodeRangeBySumError>(pos_range, val_range, k);
+        let ranges = self.value_ranges_by(pos_range, val_range, k, cmp_by_sum_error);
 
         let sum: u64 = ranges
             .iter()
@@ -705,7 +698,7 @@ impl WaveletMatrix {
         val_range: Range<u64>,
         k: usize,
     ) -> (Range<u64>, usize) {
-        let ranges = self.value_ranges::<NodeRangeBySumError>(pos_range, val_range, k);
+        let ranges = self.value_ranges_by(pos_range, val_range, k, cmp_by_sum_error);
 
         let sum_min: u64 = ranges
             .iter()
