@@ -42,151 +42,24 @@ impl QueryOnNode {
     // }
 }
 
-/// Comparator trait
-pub trait NodeRange: Ord {
-    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self;
-    fn inner(&self) -> &QueryOnNode;
-    fn from(qon: &QueryOnNode) -> Self;
-}
-
-/// QueryOnNode orderd by frequency
-#[derive(Debug, Clone, Eq)]
-pub struct NodeRangeByFrequency(QueryOnNode);
-
-impl NodeRange for NodeRangeByFrequency {
-    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
-        NodeRangeByFrequency(QueryOnNode::new(pos_range, prefix_char, depth, bit_len))
-    }
-    fn inner(&self) -> &QueryOnNode {
-        &self.0
-    }
-    fn from(qon: &QueryOnNode) -> Self {
-        NodeRangeByFrequency(qon.clone())
+pub fn cmp_by_frequency(self_: &QueryOnNode, other: &QueryOnNode) -> Ordering {
+    if self_.count() != other.count() {
+        self_.count().cmp(&other.count()) // wide node first
+    } else if self_.depth != other.depth {
+        self_.depth.cmp(&other.depth) // deepest node first
+    } else {
+        self_.pos_start.cmp(&other.pos_start) // just to make the order more predictable
     }
 }
 
-impl Ord for NodeRangeByFrequency {
-    fn cmp(&self, other: &Self) -> Ordering {
-        if self.0.count() != other.0.count() {
-            self.0.count().cmp(&other.0.count()) // wide node first
-        } else if self.0.depth != other.0.depth {
-            self.0.depth.cmp(&other.0.depth) // deepest node first
-        } else {
-            self.0.pos_start.cmp(&other.0.pos_start) // just to make the order more predictable
-        }
-    }
+pub fn cmp_by_sum_error(self_: &QueryOnNode, other: &QueryOnNode) -> Ordering {
+    self_.sum_error().cmp(&other.sum_error())
 }
 
-impl PartialOrd for NodeRangeByFrequency {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(&other))
-    }
+pub fn cmp_by_descending(self_: &QueryOnNode, other: &QueryOnNode) -> Ordering {
+    self_.prefix_char.cmp(&other.prefix_char)
 }
 
-impl PartialEq for NodeRangeByFrequency {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
-    }
-}
-
-/// QueryOnNode orderd by frequency
-#[derive(Debug, Clone, Eq)]
-pub struct NodeRangeBySumError(QueryOnNode);
-
-impl NodeRange for NodeRangeBySumError {
-    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
-        NodeRangeBySumError(QueryOnNode::new(pos_range, prefix_char, depth, bit_len))
-    }
-    fn inner(&self) -> &QueryOnNode {
-        &self.0
-    }
-    fn from(qon: &QueryOnNode) -> Self {
-        NodeRangeBySumError(qon.clone())
-    }
-}
-
-impl Ord for NodeRangeBySumError {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.sum_error().cmp(&other.0.sum_error())
-    }
-}
-
-impl PartialOrd for NodeRangeBySumError {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(&other))
-    }
-}
-
-impl PartialEq for NodeRangeBySumError {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
-    }
-}
-
-/// QueryOnNode in Descending order
-#[derive(Debug, Clone, Eq)]
-pub struct NodeRangeDescending(QueryOnNode);
-
-impl NodeRange for NodeRangeDescending {
-    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
-        NodeRangeDescending(QueryOnNode::new(pos_range, prefix_char, depth, bit_len))
-    }
-    fn inner(&self) -> &QueryOnNode {
-        &self.0
-    }
-    fn from(qon: &QueryOnNode) -> Self {
-        NodeRangeDescending(qon.clone())
-    }
-}
-
-impl Ord for NodeRangeDescending {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.prefix_char.cmp(&other.0.prefix_char)
-    }
-}
-
-impl PartialOrd for NodeRangeDescending {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(&other))
-    }
-}
-
-impl PartialEq for NodeRangeDescending {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
-    }
-}
-
-/// QueryOnNode in Ascending order
-#[derive(Debug, Clone, Eq)]
-pub struct NodeRangeAscending(QueryOnNode);
-
-impl NodeRange for NodeRangeAscending {
-    fn new(pos_range: Range<usize>, depth: u8, prefix_char: u64, bit_len: u8) -> Self {
-        NodeRangeAscending(QueryOnNode::new(pos_range, prefix_char, depth, bit_len))
-    }
-    fn inner(&self) -> &QueryOnNode {
-        &self.0
-    }
-    fn from(qon: &QueryOnNode) -> Self {
-        NodeRangeAscending(qon.clone())
-    }
-}
-
-impl Ord for NodeRangeAscending {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other.0.prefix_char.cmp(&self.0.prefix_char)
-    }
-}
-
-impl PartialOrd for NodeRangeAscending {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(&other))
-    }
-}
-
-impl PartialEq for NodeRangeAscending {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
-    }
+pub fn cmp_by_ascending(self_: &QueryOnNode, other: &QueryOnNode) -> Ordering {
+    other.prefix_char.cmp(&self_.prefix_char)
 }
